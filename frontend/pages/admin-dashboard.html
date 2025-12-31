@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Fresh Grocery Store</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">🛒 Fresh Grocery Admin</div>
+      <div class="nav-links">
+        <span style="color: #666;">Welcome, Admin</span>
+        <button class="logout-btn" id="logout-btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="admin-header">
+      <h1>Dashboard</h1>
+    </div>
+
+    <div id="message"></div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-value" id="stat-orders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Invoices</div>
+        <div class="stat-value" id="stat-invoices">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value" id="stat-users">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Guest Users</div>
+        <div class="stat-value" id="stat-guests">0</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="admin-tabs">
+      <button class="tab-btn active" data-tab="orders">Orders</button>
+      <button class="tab-btn" data-tab="invoices">Invoices</button>
+      <button class="tab-btn" data-tab="users">Users</button>
+      <button class="tab-btn" data-tab="products">Products</button>
+    </div>
+
+    <!-- Tab Contents -->
+    <div id="orders" class="tab-content active">
+      <h2>All Orders</h2>
+      <div class="table-container">
+        <table id="orders-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>User</th>
+              <th>Items</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Manage</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <tr><td colspan="7" style="text-align: center; padding: 2rem;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="invoices" class="tab-content">
+      <h2>All Invoices</h2>
+      <div class="table-container">
+        <table id="invoices-table">
+          <thead>
+            <tr>
+              <th>Invoice ID</th>
+              <th>Order ID</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Manage</th>
+            </tr>
+          </thead>
+          <tbody id="invoices-tbody">
+            <tr><td colspan="6" style="text-align: center; padding: 2rem;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="users" class="tab-content">
+      <h2>All Users</h2>
+      <div class="table-container">
+        <table id="users-table">
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Role</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="products" class="tab-content">
+      <div class="tab-header">
+        <div>
+          <h2>Catalog Management</h2>
+          <p class="tab-subtitle">Create, edit, or remove items from the store inventory.</p>
+        </div>
+        <div class="products-toolbar">
+          <button class="secondary-btn" id="refresh-products-btn">Refresh</button>
+          <button class="primary-btn" id="add-product-btn">New Product</button>
+        </div>
+      </div>
+
+      <div class="product-management">
+        <div class="product-table-card">
+          <div class="table-header-row">
+            <div>
+              <h3>Inventory</h3>
+              <p class="tab-subtitle" id="product-count-label">Loading catalog...</p>
+            </div>
+          </div>
+          <div class="table-container">
+            <table id="products-table">
+              <thead>
+                <tr>
+                  <th>Product ID</th>
+                  <th>Name</th>
+                  <th>Brand</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Category</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody">
+                <tr><td colspan="7" style="text-align: center; padding: 2rem;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="product-form-card">
+          <div class="product-form-header">
+            <p class="form-label-pill" id="product-mode-pill">Create</p>
+            <div>
+              <h3 id="product-form-title">Add Product</h3>
+              <p class="form-hint">Fill in the details below to publish a new item or update an existing one.</p>
+            </div>
+          </div>
+
+          <form id="product-form">
+            <input type="hidden" id="product-id">
+            <div class="form-grid">
+              <label>
+                Name
+                <input type="text" id="product-name" placeholder="Organic Almonds" required>
+              </label>
+              <label>
+                Brand
+                <input type="text" id="product-brand" placeholder="La Manna Fresh" required>
+              </label>
+              <label>
+                Category
+                <input type="text" id="product-category" placeholder="Produce" required>
+              </label>
+              <label>
+                Price ($)
+                <input type="number" id="product-price" min="0" step="0.01" placeholder="4.99" required>
+              </label>
+              <label>
+                Stock
+                <input type="number" id="product-stock" min="0" step="1" placeholder="100" required>
+              </label>
+              <label>
+                Image URL
+                <input type="url" id="product-picture" placeholder="https://example.com/image.jpg">
+              </label>
+            </div>
+            <label>
+              Description
+              <textarea id="product-description" rows="3" placeholder="Optional description..."></textarea>
+            </label>
+            <div class="modal-actions">
+              <button type="button" class="secondary-btn" id="product-form-reset">Reset</button>
+              <button type="submit" class="primary-btn" id="product-form-submit">Save Product</button>
+            </div>
+            <p class="form-error" id="product-form-error"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2025 Fresh Grocery Store. All rights reserved.</p>
+  </footer>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/admin-dashboard.js"></script>
+</body>
+</html>

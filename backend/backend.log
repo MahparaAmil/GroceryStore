@@ -1,0 +1,18 @@
+
+> dev-web-backend@1.0.0 start
+> node src/server.js
+
+[dotenv@17.2.3] injecting env (3) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+🚀 Server running on port 5000
+✅ Supabase PostgreSQL connected
+✅ Database tables synced
+[0mPOST /auth/signup [32m201[0m 369.956 ms - 274[0m
+[0mPOST /auth/login [32m200[0m 101.165 ms - 273[0m
+[0mPOST /auth/login [32m200[0m 122.821 ms - 273[0m
+[0mGET /api-docs/ [36m304[0m 5.213 ms - -[0m
+[0mGET /api-docs/swagger-ui-init.js [36m304[0m 1.149 ms - -[0m
+[0mGET /api-docs/swagger-ui.css [32m200[0m 9.550 ms - 177183[0m
+[0mGET /api-docs/swagger-ui-standalone-preset.js [32m200[0m 12.241 ms - 252451[0m
+[0mGET /api-docs/swagger-ui-bundle.js [32m200[0m 8.876 ms - 1510271[0m
+[0mGET /api-docs/favicon-32x32.png [32m200[0m 8.996 ms - 628[0m

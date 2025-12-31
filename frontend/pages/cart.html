@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Cart - Fresh Grocery Store</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">🛒 Fresh Grocery</div>
+      <div class="nav-links">
+        <a href="../index.html" class="nav-link">Products</a>
+        <a href="cart.html" class="nav-link">Cart (<span id="cart-count">0</span>)</a>
+        <a href="admin-login.html" class="nav-link admin-btn">Admin</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <h1>Shopping Cart</h1>
+    
+    <div class="cart-container">
+      <div class="cart-items" id="cart-items">
+        <p>Loading cart...</p>
+      </div>
+
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>Subtotal:</span>
+          <span id="subtotal">$0.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Delivery Fee:</span>
+          <span id="delivery-fee">$0.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Total:</span>
+          <span id="total">$0.00</span>
+        </div>
+        <button class="checkout-btn" id="checkout-btn">Proceed to Checkout</button>
+        <a href="../index.html" style="display: block; text-align: center; margin-top: 1rem; color: #666;">Continue Shopping</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2025 Fresh Grocery Store. All rights reserved.</p>
+  </footer>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/cart.js"></script>
+</body>
+</html>

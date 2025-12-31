@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation - Fresh Grocery Store</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">🛒 Fresh Grocery</div>
+      <div class="nav-links">
+        <a href="../index.html" class="nav-link">Products</a>
+        <a href="cart.html" class="nav-link">Cart (<span id="cart-count">0</span>)</a>
+        <a href="admin-login.html" class="nav-link admin-btn">Admin</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div style="max-width: 600px; margin: 3rem auto; text-align: center;">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">✓</div>
+      <h1 style="color: #2d9d4e;">Order Confirmed!</h1>
+      <p style="font-size: 1.1rem; color: #666; margin: 1rem 0;">
+        Thank you for your order. Your confirmation has been sent to your email.
+      </p>
+      
+      <div id="order-details" style="text-align: left; background: #f9f9f9; padding: 2rem; border-radius: 8px; margin: 2rem 0;">
+        <p><strong>Order ID:</strong> <span id="order-id">Loading...</span></p>
+        <p><strong>Total:</strong> <span id="order-total">-</span></p>
+        <p><strong>Status:</strong> <span id="order-status">Processing</span></p>
+      </div>
+
+      <a href="../index.html" class="checkout-btn" style="display: inline-block; text-decoration: none; margin-top: 1rem;">Continue Shopping</a>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2025 Fresh Grocery Store. All rights reserved.</p>
+  </footer>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/order-confirmation.js"></script>
+</body>
+</html>

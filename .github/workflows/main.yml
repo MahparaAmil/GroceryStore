@@ -24,5 +24,5 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.EPITECH_PAT }}
       run: |
-        git remote add epitech https://x-access-token:${GITHUB_TOKEN}@github.com/EpitechMscInternationalPromo2027/I-DEV-701-INT-7-1-trinitydevops-4.git
+        git remote add epitech https://x-access-token:${GITHUB_TOKEN}@github.com/EpitechMscInternationalPromo2027/I-DEV-702-INT-7-1-trinitydevweb-4.git
         git push epitech HEAD:main --force

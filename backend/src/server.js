@@ -16,6 +16,7 @@ const syncDB = async () => {
     console.log("✅ Database tables synced");
   } catch (error) {
     console.error("❌ DB sync failed:", error.message);
+    console.warn("⚠️ Continuing without database sync. API will use mock data.");
   }
 };
 

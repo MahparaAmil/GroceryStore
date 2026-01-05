@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { signup, login, logout } = require("../controllers/authController");
+const { signup, login, logout, checkEmail } = require("../controllers/authController");
 
 /**
  * @swagger
@@ -129,5 +129,45 @@ router.post("/login", login);
  *         description: Logout failed
  */
 router.post("/logout", logout);
+
+/**
+ * @swagger
+ * /auth/check-email:
+ *   post:
+ *     summary: Check if email exists in the system
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *             required:
+ *               - email
+ *     responses:
+ *       200:
+ *         description: Email check result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 exists:
+ *                   type: boolean
+ *                 isGuest:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Email is required
+ *       500:
+ *         description: Failed to check email
+ */
+router.post("/check-email", checkEmail);
 
 module.exports = router;

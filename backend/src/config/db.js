@@ -53,8 +53,9 @@ const connectDB = async () => {
     await sequelize.authenticate();
     console.log(isSQLite ? "✅ SQLite database ready" : "✅ PostgreSQL connected");
   } catch (error) {
-    console.error("❌ DB connection failed:", error);
-    process.exit(1);
+    console.error("❌ DB connection failed:", error.message);
+    console.warn("⚠️  Continuing without database. API will be limited.");
+    // Don't exit - allow server to continue running
   }
 };
 

@@ -116,3 +116,35 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Login failed" });
   }
 };
+exports.checkEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      // Email doesn't exist
+      return res.json({
+        exists: false,
+        isGuest: false,
+        message: "Email not found. You can create an account or checkout as guest."
+      });
+    }
+
+    // Email exists - check if guest or registered user
+    return res.json({
+      exists: true,
+      isGuest: user.isGuest,
+      message: user.isGuest 
+        ? "This email was used for a guest checkout. You can now create an account or continue as guest."
+        : "This email is already registered. Please login."
+    });
+  } catch (error) {
+    console.error("Error checking email:", error);
+    res.status(500).json({ message: "Failed to check email" });
+  }
+};

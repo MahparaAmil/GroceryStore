@@ -15,19 +15,14 @@ jobs:
       with:
         fetch-depth: 0
  
-    - name: Configure SSH with your personal key
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
- 
     - name: Configure git
       run: |
         git config --global user.name "MahparaAmil"
         git config --global user.email "amil.mahpara@epitech.eu"
  
     - name: Push to Epitech repo
+      env:
+        GITHUB_TOKEN: ${{ secrets.EPITECH_PAT }}
       run: |
-        git remote add epitech git@github.com:EpitechMscInternationalPromo2027/I-DEV-702-INT-7-1-trinitydevweb-4.git
+        git remote add epitech https://x-access-token:${GITHUB_TOKEN}@github.com/EpitechMscInternationalPromo2027/I-DEV-702-INT-7-1-trinitydevweb-4.git
         git push epitech HEAD:main --force

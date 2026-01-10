@@ -1,6 +1,4 @@
-const Invoice = require("../models/Invoice");
-const User = require("../models/User");
-const { sequelize } = require("../config/db");
+const { invoiceOps, userOps, supabase } = require("../services/supabaseService");
 
 /**
  * GET /admin/dashboard/summary
@@ -8,20 +6,19 @@ const { sequelize } = require("../config/db");
  */
 exports.getDashboardSummary = async (req, res) => {
   try {
-    const totalOrders = await Invoice.count();
-    const totalInvoices = await Invoice.count();
+    const totalOrders = await invoiceOps.countTotal();
     
-    // Count unique users who placed orders (both registered and guests)
-    const usersWithOrders = await sequelize.query(
-      `SELECT COUNT(DISTINCT "userId") as count FROM invoices`,
-      { type: sequelize.QueryTypes.SELECT }
-    );
+    // Get unique users count
+    const { data: uniqueUsers, error: userError } = await supabase
+      .from('invoices')
+      .select('userId', { count: 'exact' })
+      .not('userId', 'is', null);
     
-    const totalUsersWithOrders = usersWithOrders[0]?.count || 0;
+    const totalUsersWithOrders = uniqueUsers ? new Set(uniqueUsers.map(u => u.userId)).size : 0;
 
     res.json({
       totalOrders,
-      totalInvoices,
+      totalInvoices: totalOrders,
       totalUsersWithOrders,
     });
   } catch (error) {
@@ -38,39 +35,32 @@ exports.getDashboardSummary = async (req, res) => {
  */
 exports.getDashboardOrders = async (req, res) => {
   try {
-    const orders = await Invoice.findAll({
-      include: [
-        {
-          model: User,
-          attributes: ["id", "email", "isGuest"],
-        },
-      ],
-      order: [["createdAt", "DESC"]],
-      raw: false,
-    });
+    const invoices = await invoiceOps.getAll();
+    
+    // Enrich with user data
+    const enrichedInvoices = await Promise.all(
+      invoices.map(async (invoice) => {
+        let user = null;
+        if (invoice.userId) {
+          try {
+            user = await userOps.findById(invoice.userId);
+          } catch (error) {
+            console.log('User not found for invoice');
+          }
+        }
+        return {
+          ...invoice,
+          user: user ? { id: user.id, email: user.email, isGuest: user.isGuest } : null,
+        };
+      })
+    );
 
-    // Format response with required fields
-    const formattedOrders = orders.map((order) => {
-      const plain = order.toJSON();
-      return {
-        orderId: plain.id,
-        invoiceId: plain.invoiceNumber,
-        userId: plain.userId,
-        userName: plain.User?.email?.split("@")[0] || "Guest",
-        userEmail: plain.User?.email || "guest@example.com",
-        isGuest: plain.User?.isGuest || false,
-        orderDate: plain.createdAt,
-        paymentStatus: plain.paymentStatus,
-        totalAmount: plain.totalAmount,
-        status: plain.status,
-      };
-    });
-
-    res.json(formattedOrders);
+    res.json(enrichedInvoices);
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error fetching dashboard orders", 
-      error: error.message 
+    res.status(500).json({
+      message: "Error fetching dashboard orders",
+      error: error.message
     });
   }
 };
+

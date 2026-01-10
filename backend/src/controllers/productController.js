@@ -1,4 +1,4 @@
-const Product = require("../models/Product");
+const { productOps } = require("../services/supabaseService");
 const { fetchProductByBarcode, mergeProductData } = require("../services/openFoodFactsService");
 
 /**
@@ -6,9 +6,7 @@ const { fetchProductByBarcode, mergeProductData } = require("../services/openFoo
  */
 exports.getProducts = async (req, res) => {
   try {
-    const products = await Product.findAll({
-      order: [["createdAt", "DESC"]],
-    });
+    const products = await productOps.getAll();
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: "Error fetching products", error: error.message });
@@ -21,7 +19,7 @@ exports.getProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findByPk(id);
+    const product = await productOps.getById(id);
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -74,7 +72,7 @@ exports.createProduct = async (req, res) => {
       }
     }
 
-    const product = await Product.create(productData);
+    const product = await productOps.create(productData);
 
     res.status(201).json({
       message: "Product created successfully",
@@ -97,50 +95,51 @@ exports.updateProduct = async (req, res) => {
     const { id } = req.params;
     const { name, brand, picture, price, category, nutritionalInfo, quantityInStock, description, barcode, refreshFromBarcode } = req.body;
 
-    const product = await Product.findByPk(id);
+    let product = await productOps.getById(id);
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+
+    let updates = {};
 
     // If refreshFromBarcode is true and barcode is provided, fetch from Open Food Facts
     if (refreshFromBarcode && barcode && barcode.trim() !== "") {
       const offData = await fetchProductByBarcode(barcode);
       
       if (offData) {
-        product.name = offData.name || product.name;
-        product.brand = offData.brand || product.brand;
-        product.category = offData.category || product.category;
-        product.picture = offData.picture || product.picture;
-        product.nutritionalInfo = { ...product.nutritionalInfo, ...offData.nutritionalInfo };
-        product.openFoodFactsId = offData.openFoodFactsId;
-        product.barcode = barcode;
+        updates = {
+          name: offData.name || product.name,
+          brand: offData.brand || product.brand,
+          category: offData.category || product.category,
+          picture: offData.picture || product.picture,
+          nutritionalInfo: { ...product.nutritionalInfo, ...offData.nutritionalInfo },
+          openFoodFactsId: offData.openFoodFactsId,
+          barcode: barcode,
+        };
       } else {
         return res.status(404).json({ message: "Product not found in Open Food Facts API" });
       }
     } else {
       // Manual update
-      if (name) product.name = name;
-      if (brand) product.brand = brand;
-      if (picture) product.picture = picture;
-      if (price) product.price = parseFloat(price);
-      if (category) product.category = category;
-      if (nutritionalInfo) product.nutritionalInfo = nutritionalInfo;
-      if (quantityInStock !== undefined) product.quantityInStock = parseInt(quantityInStock);
-      if (description) product.description = description;
-      if (barcode) product.barcode = barcode;
+      if (name) updates.name = name;
+      if (brand) updates.brand = brand;
+      if (picture) updates.picture = picture;
+      if (price) updates.price = parseFloat(price);
+      if (category) updates.category = category;
+      if (nutritionalInfo) updates.nutritionalInfo = nutritionalInfo;
+      if (quantityInStock !== undefined) updates.quantityInStock = parseInt(quantityInStock);
+      if (description) updates.description = description;
+      if (barcode) updates.barcode = barcode;
     }
 
-    await product.save();
+    product = await productOps.update(id, updates);
 
     res.json({
       message: "Product updated successfully",
       product,
     });
   } catch (error) {
-    if (error.name === "SequelizeUniqueConstraintError") {
-      return res.status(409).json({ message: "Barcode already exists" });
-    }
     res.status(500).json({ message: "Error updating product", error: error.message });
   }
 };
@@ -152,13 +151,13 @@ exports.deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const product = await Product.findByPk(id);
+    const product = await productOps.getById(id);
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    await product.destroy();
+    await productOps.delete(id);
 
     res.json({ message: "Product deleted successfully" });
   } catch (error) {

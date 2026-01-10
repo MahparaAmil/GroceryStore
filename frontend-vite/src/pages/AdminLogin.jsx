@@ -25,10 +25,48 @@ export default function AdminLogin() {
     }
 
     try {
-      await login(formData.email, formData.password);
+      console.log('🔐 LOGIN ATTEMPT');
+      console.log('  Email:', formData.email);
+      console.log('  Password:', formData.password ? '****' : 'empty');
+      
+      const user = await login(formData.email, formData.password);
+      console.log('✅ Login hook returned:', user);
+      
+      // Small delay to ensure all updates are complete
+      console.log('⏳ Waiting 500ms before checking localStorage and navigating...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check localStorage after login
+      const token = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+      console.log('📦 LocalStorage after wait:');
+      console.log('  Token exists:', !!token);
+      console.log('  User:', savedUser);
+      
+      if (!savedUser || !token) {
+        console.error('❌ Token or user not in localStorage');
+        setError('Login failed: Data not saved to storage');
+        return;
+      }
+      
+      const userData = JSON.parse(savedUser);
+      console.log('👤 Parsed user:', userData);
+      
+      if (userData.role !== 'admin') {
+        console.error(`❌ User role is "${userData.role}", not "admin"`);
+        setError(`Login failed: You are a ${userData.role}, not an admin`);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return;
+      }
+      
+      console.log('✅ All checks passed, navigating to /admin');
       navigate('/admin');
+      
     } catch (err) {
-      setError(authError || 'Login failed. Please try again.');
+      console.error('❌ Login error:', err);
+      const errorMessage = err.message || 'Login failed. Please try again.';
+      setError(errorMessage);
     }
   };
 

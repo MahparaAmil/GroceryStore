@@ -3,6 +3,11 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK === 'true';
 
+console.log('🔧 API Configuration:');
+console.log('  API_BASE_URL:', API_BASE_URL);
+console.log('  VITE_API_URL from env:', import.meta.env.VITE_API_URL);
+console.log('  USE_MOCK_DATA:', USE_MOCK_DATA);
+
 // Mock data for testing without backend
 const mockProducts = [
   { id: 1, name: 'Fresh Tomatoes', description: 'Ripe red tomatoes', price: 2.99, stock: 15, image: '🍅' },

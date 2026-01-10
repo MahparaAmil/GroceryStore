@@ -42,10 +42,47 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    if (!isAdmin) {
-      logout();
-      navigate('/admin/login');
-    } else {
+    console.log('🔍 AdminDashboard mounted, checking auth...');
+    console.log('  isAdmin from hook:', isAdmin);
+    console.log('  user from hook:', user);
+    
+    // Check localStorage directly
+    const checkAuth = () => {
+      const savedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      console.log('  Checking localStorage:');
+      console.log('    Token:', token ? 'EXISTS' : 'MISSING');
+      console.log('    User:', savedUser);
+      
+      if (!savedUser || !token) {
+        console.log('❌ No token or user in localStorage, redirecting to login');
+        logout();
+        navigate('/admin/login');
+        return false;
+      }
+      
+      try {
+        const userData = JSON.parse(savedUser);
+        console.log('    Parsed user:', userData);
+        
+        if (userData.role !== 'admin') {
+          console.log(`❌ User role is "${userData.role}", not "admin", redirecting to login`);
+          logout();
+          navigate('/admin/login');
+          return false;
+        }
+        
+        console.log('✅ User is admin, loading dashboard');
+        return true;
+      } catch (e) {
+        console.error('  Error parsing user:', e);
+        logout();
+        navigate('/admin/login');
+        return false;
+      }
+    };
+    
+    if (checkAuth()) {
       fetchProducts();
       loadDashboardData();
       if (activeTab === 'reports') {

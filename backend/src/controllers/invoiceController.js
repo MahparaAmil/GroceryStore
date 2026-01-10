@@ -1,9 +1,8 @@
-const Invoice = require("../models/Invoice");
-const User = require("../models/User");
-const Product = require("../models/Product");
+const { invoiceOps, productOps, userOps } = require("../services/supabaseService");
+const { v4: uuidv4 } = require("uuid");
 
 const toInvoiceDto = (invoice) => {
-  const plain = invoice?.toJSON ? invoice.toJSON() : invoice;
+  const plain = invoice || {};
 
   const derivedStatus =
     plain?.paymentStatus === "refunded"
@@ -47,17 +46,28 @@ exports.getInvoices = async (req, res) => {
     
     if (req.user.role === "admin") {
       // Admin sees all invoices
-      invoices = await Invoice.findAll({
-        include: [{ model: User, attributes: ["id", "email"] }],
-        order: [["createdAt", "DESC"]],
-      });
+      invoices = await invoiceOps.getAll();
+      
+      // Enrich with user data
+      invoices = await Promise.all(
+        invoices.map(async (inv) => {
+          if (inv.userId) {
+            const user = await userOps.findById(inv.userId);
+            return { ...inv, user: user ? { id: user.id, email: user.email } : null };
+          }
+          return inv;
+        })
+      );
     } else {
       // Customer sees only their invoices
-      invoices = await Invoice.findAll({
-        where: { userId: req.user.id },
-        include: [{ model: User, attributes: ["id", "email"] }],
-        order: [["createdAt", "DESC"]],
-      });
+      invoices = await invoiceOps.getByUserId(req.user.id);
+      
+      // Enrich with user data
+      const user = await userOps.findById(req.user.id);
+      invoices = invoices.map(inv => ({
+        ...inv,
+        user: user ? { id: user.id, email: user.email } : null
+      }));
     }
 
     res.json(invoices.map(toInvoiceDto));
@@ -72,9 +82,7 @@ exports.getInvoices = async (req, res) => {
 exports.getInvoiceById = async (req, res) => {
   try {
     const { id } = req.params;
-    const invoice = await Invoice.findByPk(id, {
-      include: [{ model: User, attributes: ["id", "email"] }],
-    });
+    const invoice = await invoiceOps.getById(id);
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
@@ -85,7 +93,14 @@ exports.getInvoiceById = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    res.json(toInvoiceDto(invoice));
+    // Enrich with user data
+    const user = await userOps.findById(invoice.userId);
+    const enrichedInvoice = {
+      ...invoice,
+      user: user ? { id: user.id, email: user.email } : null
+    };
+
+    res.json(toInvoiceDto(enrichedInvoice));
   } catch (error) {
     res.status(500).json({ message: "Error fetching invoice", error: error.message });
   }
@@ -111,7 +126,7 @@ exports.createInvoice = async (req, res) => {
     }
 
     // Verify user exists
-    const user = await User.findByPk(targetUserId);
+    const user = await userOps.findById(targetUserId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -125,7 +140,7 @@ exports.createInvoice = async (req, res) => {
         return res.status(400).json({ message: "Each item must have productId and quantity" });
       }
 
-      const product = await Product.findByPk(item.productId);
+      const product = await productOps.getById(item.productId);
       if (!product) {
         return res.status(404).json({ message: `Product ${item.productId} not found` });
       }
@@ -145,36 +160,40 @@ exports.createInvoice = async (req, res) => {
       totalAmount += subtotal;
 
       // Decrease stock
-      product.quantityInStock -= itemQuantity;
-      if (product.quantityInStock < 0) {
+      const newStock = product.quantityInStock - itemQuantity;
+      if (newStock < 0) {
         return res.status(400).json({ 
           message: `Insufficient stock for product ${product.name}` 
         });
       }
-      await product.save();
+      await productOps.update(product.id, { quantityInStock: newStock });
     }
 
-    const invoice = await Invoice.create({
+    const invoice = await invoiceOps.create({
+      id: uuidv4(),
       userId: targetUserId,
       invoiceNumber: generateInvoiceNumber(),
       totalAmount: parseFloat(totalAmount.toFixed(2)),
       items: processedItems,
-      billingAddress,
-      billingCity,
-      billingZipCode,
-      billingCountry,
-      notes,
+      billingAddress: billingAddress || null,
+      billingCity: billingCity || null,
+      billingZipCode: billingZipCode || null,
+      billingCountry: billingCountry || null,
+      notes: notes || null,
       paymentMethod: paymentMethod || "cash_on_delivery",
       status: "completed",
+      paymentStatus: "pending",
     });
 
-    const populatedInvoice = await Invoice.findByPk(invoice.id, {
-      include: [{ model: User, attributes: ["id", "email"] }],
-    });
+    // Enrich with user data
+    const enrichedInvoice = {
+      ...invoice,
+      user: { id: user.id, email: user.email }
+    };
 
     res.status(201).json({
       message: "Invoice created successfully",
-      invoice: populatedInvoice,
+      invoice: enrichedInvoice,
     });
   } catch (error) {
     res.status(500).json({ message: "Error creating invoice", error: error.message });
@@ -189,37 +208,41 @@ exports.updateInvoice = async (req, res) => {
     const { id } = req.params;
     const { status, paymentStatus, paymentReference, paymentMethod, billingAddress, billingCity, billingZipCode, billingCountry, notes } = req.body;
 
-    const invoice = await Invoice.findByPk(id);
+    const invoice = await invoiceOps.getById(id);
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
 
-    // Update fields if provided
-    if (status) invoice.status = status;
+    // Build update object
+    const updateData = {};
+    if (status) updateData.status = status;
     if (paymentStatus) {
-      invoice.paymentStatus = paymentStatus;
+      updateData.paymentStatus = paymentStatus;
       if (paymentStatus === "completed") {
-        invoice.paidAt = new Date();
+        updateData.paidAt = new Date().toISOString();
       }
     }
-    if (paymentReference) invoice.paymentReference = paymentReference;
-    if (paymentMethod) invoice.paymentMethod = paymentMethod;
-    if (billingAddress) invoice.billingAddress = billingAddress;
-    if (billingCity) invoice.billingCity = billingCity;
-    if (billingZipCode) invoice.billingZipCode = billingZipCode;
-    if (billingCountry) invoice.billingCountry = billingCountry;
-    if (notes) invoice.notes = notes;
+    if (paymentReference) updateData.paymentReference = paymentReference;
+    if (paymentMethod) updateData.paymentMethod = paymentMethod;
+    if (billingAddress) updateData.billingAddress = billingAddress;
+    if (billingCity) updateData.billingCity = billingCity;
+    if (billingZipCode) updateData.billingZipCode = billingZipCode;
+    if (billingCountry) updateData.billingCountry = billingCountry;
+    if (notes) updateData.notes = notes;
 
-    await invoice.save();
+    const updatedInvoice = await invoiceOps.update(id, updateData);
 
-    const updatedInvoice = await Invoice.findByPk(id, {
-      include: [{ model: User, attributes: ["id", "email"] }],
-    });
+    // Enrich with user data
+    const user = await userOps.findById(updatedInvoice.userId);
+    const enrichedInvoice = {
+      ...updatedInvoice,
+      user: user ? { id: user.id, email: user.email } : null
+    };
 
     res.json({
       message: "Invoice updated successfully",
-      invoice: toInvoiceDto(updatedInvoice),
+      invoice: toInvoiceDto(enrichedInvoice),
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating invoice", error: error.message });
@@ -234,39 +257,43 @@ exports.updateInvoiceStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const invoice = await Invoice.findByPk(id);
+    const invoice = await invoiceOps.getById(id);
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
 
     const normalized = String(status || "").toLowerCase();
+    const updateData = {};
 
     if (normalized === "paid") {
-      invoice.status = "completed";
-      invoice.paymentStatus = "completed";
-      invoice.paidAt = new Date();
+      updateData.status = "completed";
+      updateData.paymentStatus = "completed";
+      updateData.paidAt = new Date().toISOString();
     } else if (normalized === "pending") {
-      invoice.status = "pending";
-      invoice.paymentStatus = "pending";
-      invoice.paidAt = null;
+      updateData.status = "pending";
+      updateData.paymentStatus = "pending";
+      updateData.paidAt = null;
     } else if (normalized === "cancelled") {
-      invoice.status = "cancelled";
+      updateData.status = "cancelled";
     } else if (normalized === "refunded") {
-      invoice.paymentStatus = "refunded";
-      invoice.status = "cancelled";
+      updateData.paymentStatus = "refunded";
+      updateData.status = "cancelled";
     } else {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    await invoice.save();
+    const updated = await invoiceOps.update(id, updateData);
 
-    const updated = await Invoice.findByPk(id, {
-      include: [{ model: User, attributes: ["id", "email"] }],
-    });
+    // Enrich with user data
+    const user = await userOps.findById(updated.userId);
+    const enrichedInvoice = {
+      ...updated,
+      user: user ? { id: user.id, email: user.email } : null
+    };
 
     res.json({
       message: "Invoice status updated successfully",
-      invoice: toInvoiceDto(updated),
+      invoice: toInvoiceDto(enrichedInvoice),
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating invoice status", error: error.message });
@@ -280,7 +307,7 @@ exports.deleteInvoice = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const invoice = await Invoice.findByPk(id);
+    const invoice = await invoiceOps.getById(id);
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
@@ -293,15 +320,15 @@ exports.deleteInvoice = async (req, res) => {
     // Restore stock for deleted invoice
     if (invoice.items && Array.isArray(invoice.items)) {
       for (const item of invoice.items) {
-        const product = await Product.findByPk(item.productId);
+        const product = await productOps.getById(item.productId);
         if (product) {
-          product.quantityInStock += item.quantity;
-          await product.save();
+          const newStock = product.quantityInStock + item.quantity;
+          await productOps.update(product.id, { quantityInStock: newStock });
         }
       }
     }
 
-    await invoice.destroy();
+    await invoiceOps.delete(id);
 
     res.json({ message: "Invoice deleted successfully" });
   } catch (error) {
@@ -316,18 +343,20 @@ exports.getUserInvoices = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const user = await User.findByPk(userId);
+    const user = await userOps.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const invoices = await Invoice.findAll({
-      where: { userId: userId },
-      include: [{ model: User, attributes: ["id", "email"] }],
-      order: [["createdAt", "DESC"]],
-    });
+    const invoices = await invoiceOps.getByUserId(userId);
 
-    res.json(invoices.map(toInvoiceDto));
+    // Enrich with user data
+    const enrichedInvoices = invoices.map(inv => ({
+      ...inv,
+      user: { id: user.id, email: user.email }
+    }));
+
+    res.json(enrichedInvoices.map(toInvoiceDto));
   } catch (error) {
     res.status(500).json({ message: "Error fetching user invoices", error: error.message });
   }
@@ -350,15 +379,18 @@ exports.guestCheckout = async (req, res) => {
     }
 
     // Check if guest email already exists
-    let guestUser = await User.findOne({ where: { email: guestEmail } });
+    let guestUser = await userOps.findByEmail(guestEmail);
 
     if (!guestUser) {
       // Create new guest user
-      guestUser = await User.create({
+      guestUser = await userOps.create({
+        id: uuidv4(),
         email: guestEmail,
-        password: null, // No password for guests
+        password: null,
         role: "customer",
         isGuest: true,
+        ordersCount: 0,
+        lastOrderAt: null
       });
     }
 
@@ -371,7 +403,7 @@ exports.guestCheckout = async (req, res) => {
         return res.status(400).json({ message: "Each item must have productId and quantity" });
       }
 
-      const product = await Product.findByPk(item.productId);
+      const product = await productOps.getById(item.productId);
       if (!product) {
         return res.status(404).json({ message: `Product ${item.productId} not found` });
       }
@@ -391,22 +423,22 @@ exports.guestCheckout = async (req, res) => {
       totalAmount += subtotal;
 
       // Decrease stock
-      product.quantityInStock -= itemQuantity;
-      if (product.quantityInStock < 0) {
+      const newStock = product.quantityInStock - itemQuantity;
+      if (newStock < 0) {
         return res.status(400).json({ 
           message: `Insufficient stock for product ${product.name}` 
         });
       }
-
-      await product.save();
+      await productOps.update(product.id, { quantityInStock: newStock });
     }
 
     // Create invoice
-    const invoice = await Invoice.create({
-      orderId: null, // Direct invoice without separate order
+    const invoice = await invoiceOps.create({
+      id: uuidv4(),
+      orderId: null,
       userId: guestUser.id,
       invoiceNumber: generateInvoiceNumber(),
-      totalAmount: totalAmount.toFixed(2),
+      totalAmount: parseFloat(totalAmount.toFixed(2)),
       items: processedItems,
       billingAddress: billingAddress || null,
       status: "pending",
@@ -415,9 +447,10 @@ exports.guestCheckout = async (req, res) => {
     });
 
     // Update user order count
-    guestUser.ordersCount += 1;
-    guestUser.lastOrderAt = new Date();
-    await guestUser.save();
+    await userOps.update(guestUser.id, {
+      ordersCount: (guestUser.ordersCount || 0) + 1,
+      lastOrderAt: new Date().toISOString()
+    });
 
     res.status(201).json({
       message: "Guest checkout successful",

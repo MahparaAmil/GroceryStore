@@ -93,7 +93,7 @@ const productOps = {
 const orderOps = {
   create: async (orderData) => {
     const { data, error } = await supabase
-      .from('orders')
+      .from('Orders')
       .insert([{
         ...orderData,
         createdAt: new Date().toISOString(),
@@ -108,7 +108,7 @@ const orderOps = {
 
   getAll: async () => {
     const { data, error } = await supabase
-      .from('orders')
+      .from('Orders')
       .select('*')
       .order('createdAt', { ascending: false });
     
@@ -118,7 +118,7 @@ const orderOps = {
 
   getById: async (id) => {
     const { data, error } = await supabase
-      .from('orders')
+      .from('Orders')
       .select('*')
       .eq('id', id)
       .single();
@@ -129,7 +129,7 @@ const orderOps = {
 
   getByUserId: async (userId) => {
     const { data, error } = await supabase
-      .from('orders')
+      .from('Orders')
       .select('*')
       .eq('userId', userId)
       .order('createdAt', { ascending: false });
@@ -140,7 +140,7 @@ const orderOps = {
 
   update: async (id, updates) => {
     const { data, error } = await supabase
-      .from('orders')
+      .from('Orders')
       .update({
         ...updates,
         updatedAt: new Date().toISOString()
@@ -155,7 +155,7 @@ const orderOps = {
 
   delete: async (id) => {
     const { error } = await supabase
-      .from('orders')
+      .from('Orders')
       .delete()
       .eq('id', id);
     
@@ -168,7 +168,7 @@ const orderOps = {
 const invoiceOps = {
   create: async (invoiceData) => {
     const { data, error } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .insert([{
         ...invoiceData,
         createdAt: new Date().toISOString(),
@@ -183,7 +183,7 @@ const invoiceOps = {
 
   getAll: async () => {
     const { data, error } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .select('*')
       .order('createdAt', { ascending: false });
     
@@ -193,7 +193,7 @@ const invoiceOps = {
 
   getById: async (id) => {
     const { data, error } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .select('*')
       .eq('id', id)
       .single();
@@ -204,7 +204,7 @@ const invoiceOps = {
 
   getByUserId: async (userId) => {
     const { data, error } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .select('*')
       .eq('userId', userId)
       .order('createdAt', { ascending: false });
@@ -215,7 +215,7 @@ const invoiceOps = {
 
   countByStatus: async (status) => {
     const { count, error } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .select('*', { count: 'exact', head: true })
       .eq('status', status);
     
@@ -225,7 +225,7 @@ const invoiceOps = {
 
   countTotal: async () => {
     const { count, error } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .select('*', { count: 'exact', head: true });
     
     if (error) throw new Error(error.message);
@@ -234,7 +234,7 @@ const invoiceOps = {
 
   update: async (id, updates) => {
     const { data, error } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .update({
         ...updates,
         updatedAt: new Date().toISOString()
@@ -249,7 +249,7 @@ const invoiceOps = {
 
   delete: async (id) => {
     const { error } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .delete()
       .eq('id', id);
     
@@ -270,6 +270,8 @@ const userOps = {
         email,
         password: hashedPassword,
         role,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         ...rest
       }])
       .select()

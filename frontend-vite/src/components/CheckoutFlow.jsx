@@ -195,6 +195,7 @@ export default function CheckoutFlow({ onProceed, isLoading }) {
           </p>
 
           <div className="checkout-options">
+            {/* Always show login option for existing users */}
             {emailStatus?.exists && !emailStatus?.isGuest && (
               <button
                 onClick={() => setStep('login')}
@@ -208,6 +209,7 @@ export default function CheckoutFlow({ onProceed, isLoading }) {
               </button>
             )}
 
+            {/* Show signup for new emails */}
             {!emailStatus?.exists && (
               <button
                 onClick={() => setStep('signup')}
@@ -221,6 +223,21 @@ export default function CheckoutFlow({ onProceed, isLoading }) {
               </button>
             )}
 
+            {/* Show signup for guest accounts that want to register */}
+            {emailStatus?.exists && emailStatus?.isGuest && (
+              <button
+                onClick={() => setStep('signup')}
+                className="btn btn-option btn-signup"
+              >
+                <span className="option-icon">✨</span>
+                <div>
+                  <h3>Create Account</h3>
+                  <p>Convert guest account to registered</p>
+                </div>
+              </button>
+            )}
+
+            {/* Always show guest checkout option */}
             <button
               onClick={() => setStep('guest')}
               className="btn btn-option btn-guest"
@@ -375,13 +392,26 @@ export default function CheckoutFlow({ onProceed, isLoading }) {
             </p>
           </div>
 
-          <button
-            onClick={handleGuestCheckout}
-            disabled={isLoading}
-            className="btn btn-primary"
-          >
-            Continue as Guest
-          </button>
+          <div className="guest-checkout-actions">
+            <button
+              onClick={handleGuestCheckout}
+              disabled={isLoading}
+              className="btn btn-primary"
+            >
+              Continue as Guest
+            </button>
+
+            <div className="divider">
+              <span>or</span>
+            </div>
+
+            <button
+              onClick={() => setStep('login')}
+              className="btn btn-secondary btn-full"
+            >
+              Sign In to Existing Account
+            </button>
+          </div>
 
           <button onClick={goBack} className="btn btn-secondary btn-back">
             ← Back

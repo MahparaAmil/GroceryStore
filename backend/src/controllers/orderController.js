@@ -155,15 +155,22 @@ exports.getOrders = async (req, res) => {
  */
 exports.getOrderById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const order = await orderOps.getById(id);
+    const { orderId } = req.params;
+    const order = await orderOps.getById(orderId);
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check access
-    if (req.user.role !== 'admin' && order.userId !== req.user.id) {
+    // Allow access if:
+    // 1. User is admin
+    // 2. User is logged in and owns the order
+    // 3. Order is a guest order (anyone with the orderId can view)
+    const isAdmin = req.user && req.user.role === 'admin';
+    const isOwner = req.user && order.userId === req.user.id;
+    const isGuestOrder = order.guestInfo !== null && order.guestInfo !== undefined;
+
+    if (!isAdmin && !isOwner && !isGuestOrder) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 

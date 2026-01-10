@@ -212,3 +212,36 @@
     font-size: 28px;
   }
 }
+.guest-checkout-actions {
+  margin: 30px 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  color: #999;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.divider::before {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #ddd;
+  margin-right: 10px;
+}
+
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #ddd;
+  margin-left: 10px;
+}
+
+.btn-full {
+  width: 100%;
+  margin-top: 10px;
+}

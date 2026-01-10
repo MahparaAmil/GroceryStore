@@ -195,19 +195,17 @@ export default function CheckoutFlow({ onProceed, isLoading }) {
           </p>
 
           <div className="checkout-options">
-            {/* Always show login option for existing users */}
-            {emailStatus?.exists && !emailStatus?.isGuest && (
-              <button
-                onClick={() => setStep('login')}
-                className="btn btn-option btn-login"
-              >
-                <span className="option-icon">🔐</span>
-                <div>
-                  <h3>Login</h3>
-                  <p>Sign in to your existing account</p>
-                </div>
-              </button>
-            )}
+            {/* Always show login option - for existing users or if they want to try existing account */}
+            <button
+              onClick={() => setStep('login')}
+              className="btn btn-option btn-login"
+            >
+              <span className="option-icon">🔐</span>
+              <div>
+                <h3>Login</h3>
+                <p>Sign in with an existing account</p>
+              </div>
+            </button>
 
             {/* Show signup for new emails */}
             {!emailStatus?.exists && (

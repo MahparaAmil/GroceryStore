@@ -6,6 +6,7 @@ const adminOnly = require("../middlewares/adminOnly");
 
 const {
   getUsers,
+  createUser,
   getProfile,
   updateProfile,
   deleteProfile,
@@ -48,6 +49,52 @@ const {
  *         description: Forbidden - Admin only
  */
 router.get("/", auth, adminOnly, getUsers);
+
+/**
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Create a new user (Admin only)
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [admin, customer]
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Missing required fields
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       409:
+ *         description: Email already in use
+ */
+router.post("/", auth, adminOnly, createUser);
 
 /**
  * @swagger

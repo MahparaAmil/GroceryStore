@@ -7,6 +7,8 @@ const {
   getOrderById,
   updateOrderStatus
 } = require('../controllers/orderController');
+const verifyToken = require('../middlewares/authMiddleware');
+const isAdmin = require('../middlewares/adminOnly');
 
 /**
  * @swagger
@@ -72,8 +74,8 @@ router.post('/', createOrder);
  *       500:
  *         description: Server error
  */
-// Get all orders (admin only)
-router.get('/', getAllOrders);
+// Get all orders (admin: all, user: own)
+router.get('/', verifyToken, getAllOrders);
 
 /**
  * @swagger
@@ -120,7 +122,7 @@ router.get('/user/:userId', getOrdersByUserId);
  *         description: Server error
  */
 // Get order by ID
-router.get('/:orderId', getOrderById);
+router.get('/:orderId', verifyToken, getOrderById);
 
 /**
  * @swagger
@@ -155,6 +157,6 @@ router.get('/:orderId', getOrderById);
  *         description: Server error
  */
 // Update order status
-router.patch('/:orderId/status', updateOrderStatus);
+router.patch('/:orderId/status', verifyToken, isAdmin, updateOrderStatus);
 
 module.exports = router;

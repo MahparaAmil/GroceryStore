@@ -10,6 +10,7 @@ const {
   createProduct,
   updateProduct,
   deleteProduct,
+  lookupProduct,
 } = require("../controllers/productController");
 
 /**
@@ -54,6 +55,9 @@ const {
  *       500:
  *         description: Error fetching products
  */
+// Lookup by barcode (Open Food Facts)
+router.get("/lookup/:barcode", lookupProduct);
+
 router.get("/", getProducts);
 
 /**

@@ -1,42 +1,42 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-
-const { handlePayPalWebhook, verifyWebhookSignature } = require("../services/paypalService");
+const auth = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
- * /payments/paypal/webhook:
+ * /payments/paypal-webhook:
  *   post:
- *     summary: PayPal webhook endpoint
+ *     summary: Handle PayPal Ipn/Webhooks
  *     tags:
  *       - Payments
- *     description: Receives and logs PayPal webhook notifications. No real payment processing.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               event_type:
- *                 type: string
- *                 example: PAYMENT.CAPTURE.COMPLETED
- *               resource:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   amount:
- *                     type: object
- *                     properties:
- *                       value:
- *                         type: string
  *     responses:
  *       200:
- *         description: Webhook processed successfully
- *       500:
- *         description: Error processing webhook
+ *         description: Webhook received
  */
-router.post("/paypal/webhook", verifyWebhookSignature, handlePayPalWebhook);
+router.post('/paypal-webhook', (req, res) => {
+    // Requirements: "Consider the PayPal API ... to set up callback URLs"
+    // This is the placeholder for that callback URL.
+    console.log('PayPal Webhook Received:', req.body);
+    // Logic to verify IPN and update Order status would go here
+    res.sendStatus(200);
+});
+
+/**
+ * @swagger
+ * /payments/create-intent:
+ *   post:
+ *     summary: Create payment intent
+ *     tags:
+ *       - Payments
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Payment intent created
+ */
+router.post('/create-intent', auth, (req, res) => {
+    // Placeholder for creating a payment intent (Stripe/PayPal)
+    res.json({ clientSecret: 'mock_client_secret', id: 'mock_payment_id' });
+});
 
 module.exports = router;

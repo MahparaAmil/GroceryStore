@@ -7,13 +7,18 @@ const { invoiceOps, userOps, supabase } = require("../services/supabaseService")
 exports.getDashboardSummary = async (req, res) => {
   try {
     const totalOrders = await invoiceOps.countTotal();
-    
+
     // Get unique users count
     const { data: uniqueUsers, error: userError } = await supabase
-      .from('invoices')
+      .from('Invoices')
       .select('userId', { count: 'exact' })
       .not('userId', 'is', null);
-    
+
+    if (userError) {
+      console.error('Error fetching unique users:', userError);
+      // Don't throw, just fallback to 0
+    }
+
     const totalUsersWithOrders = uniqueUsers ? new Set(uniqueUsers.map(u => u.userId)).size : 0;
 
     res.json({
@@ -22,9 +27,10 @@ exports.getDashboardSummary = async (req, res) => {
       totalUsersWithOrders,
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: "Error fetching dashboard summary", 
-      error: error.message 
+    console.error('Admin Dashboard Summary Error:', error);
+    res.status(500).json({
+      message: "Error fetching dashboard summary",
+      error: error.message
     });
   }
 };
@@ -36,7 +42,7 @@ exports.getDashboardSummary = async (req, res) => {
 exports.getDashboardOrders = async (req, res) => {
   try {
     const invoices = await invoiceOps.getAll();
-    
+
     // Enrich with user data
     const enrichedInvoices = await Promise.all(
       invoices.map(async (invoice) => {
@@ -57,6 +63,7 @@ exports.getDashboardOrders = async (req, res) => {
 
     res.json(enrichedInvoices);
   } catch (error) {
+    console.error('Admin Dashboard Orders Error:', error);
     res.status(500).json({
       message: "Error fetching dashboard orders",
       error: error.message

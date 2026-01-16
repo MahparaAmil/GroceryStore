@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../context/ThemeContext';
 import '../styles/Navbar.css';
 
 export default function Navbar() {
   const { cartCount } = useCart();
   const { user, logout, isAdmin } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -18,22 +20,19 @@ export default function Navbar() {
           🛒 Fresh Grocery
         </Link>
         <div className="nav-links">
-          <Link to="/" className="nav-link">
-            Products
-          </Link>
+          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/brands" className="nav-link">Brands</Link>
+          <Link to="/categories" className="nav-link">Categories</Link>
           <Link to="/cart" className="nav-link cart-link">
-            Cart 
-            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+            Cart {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </Link>
-          {isAdmin && (
-            <Link to="/admin" className="nav-link admin-btn">
-              Dashboard
-            </Link>
-          )}
+
+          <button onClick={toggleTheme} className="theme-toggle-btn" aria-label="Toggle Dark Mode">
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+
           {!user ? (
-            <Link to="/admin/login" className="nav-link admin-btn">
-              Admin
-            </Link>
+            null
           ) : (
             <button onClick={handleLogout} className="nav-link logout-btn">
               Logout

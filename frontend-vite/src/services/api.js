@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK === 'true';
 
 console.log('🔧 API Configuration:');
@@ -55,15 +55,15 @@ api.interceptors.response.use(
 export const authAPI = {
   signup: (email, password) =>
     api.post('/auth/signup', { email, password }),
-  
+
   login: (email, password) =>
     api.post('/auth/login', { email, password }),
-  
+
   logout: () => api.post('/auth/logout'),
-  
+
   checkEmail: (email) =>
     api.post('/auth/check-email', { email }),
-  
+
   getCurrentUser: () => api.get('/auth/me'),
 };
 
@@ -79,6 +79,11 @@ const normalizeProduct = (product) => {
       stock: product.quantityInStock !== undefined ? product.quantityInStock : 0,
       picture: product.picture && product.picture.length > 0 ? product.picture : '🥬',
       category: product.category || '',
+      brand: product.brand || 'Unknown',
+      tags: product.tags || (product.nutritionalInfo?.tags) || [],
+      gallery: product.gallery || (product.nutritionalInfo?.gallery) || [],
+      nutritionalInfo: product.nutritionalInfo || {},
+      barcode: product.barcode || '',
     };
     return normalized;
   } catch (error) {
@@ -103,9 +108,21 @@ export const productsAPI = {
     }
     return api.get('/products', { params: filters })
       .then(response => {
-        const products = Array.isArray(response.data) ? response.data : [];
+        // Handle both flattened array and paginated object { data: [], count: 100 }
+        let rawProducts = [];
+        let count = 0;
+
+        if (Array.isArray(response.data)) {
+          rawProducts = response.data;
+          count = rawProducts.length;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          rawProducts = response.data.data;
+          count = response.data.count;
+        }
+
         return {
-          data: products.map(normalizeProduct).filter(p => p !== null),
+          data: rawProducts.map(normalizeProduct).filter(p => p !== null),
+          count: count
         };
       })
       .catch(error => {
@@ -113,7 +130,7 @@ export const productsAPI = {
         throw error;
       });
   },
-  
+
   getById: (id) => {
     if (USE_MOCK_DATA) {
       const product = mockProducts.find(p => p.id === parseInt(id));
@@ -128,102 +145,105 @@ export const productsAPI = {
         throw error;
       });
   },
-  
-  create: (data) => 
+
+  create: (data) =>
     api.post('/products', data).then(response => ({
       data: normalizeProduct(response.data),
     })),
-  
-  update: (id, data) => 
+
+  update: (id, data) =>
     api.put(`/products/${id}`, data),
-  
-  delete: (id) => 
+
+  delete: (id) =>
     api.delete(`/products/${id}`),
+
+  lookupByBarcode: (barcode) =>
+    api.get(`/products/lookup/${barcode}`),
 };
 
 // ==================== ORDERS ENDPOINTS ====================
 export const ordersAPI = {
-  create: (data) => 
+  create: (data) =>
     api.post('/orders', data),
-  
-  getAll: (filters = {}) => 
+
+  getAll: (filters = {}) =>
     api.get('/orders', { params: filters }),
-  
-  getById: (id) => 
+
+  getById: (id) =>
     api.get(`/orders/${id}`),
-  
-  updateStatus: (id, status) => 
-    api.put(`/orders/${id}`, { status }),
+
+  updateStatus: (id, status) =>
+    api.patch(`/orders/${id}/status`, { status }),
 };
 
 // ==================== ADMIN ENDPOINTS ====================
 export const adminAPI = {
   getDashboardSummary: () =>
     api.get('/admin/dashboard/summary'),
-  
+
   getDashboardOrders: () =>
     api.get('/admin/dashboard/orders'),
 };
 
 // ==================== INVOICES ENDPOINTS ====================
 export const invoicesAPI = {
-  getAll: (filters = {}) => 
+  getAll: (filters = {}) =>
     api.get('/invoices', { params: filters }),
-  
+
   getById: (id) =>
     api.get(`/invoices/${id}`),
-  
+
   getByUserId: (userId) =>
     api.get(`/invoices/user/${userId}`),
-  
+
   create: (data) =>
     api.post('/invoices', data),
-  
+
   update: (id, data) =>
     api.put(`/invoices/${id}`, data),
-  
+
   updateStatus: (id, status) =>
     api.put(`/invoices/${id}/status`, { status }),
-  
+
   delete: (id) =>
     api.delete(`/invoices/${id}`),
-  
+
   guestCheckout: (data) =>
     api.post('/invoices/checkout/guest', data),
 };
 
 // ==================== PAYMENT ENDPOINTS ====================
 export const paymentAPI = {
-  createPayment: (data) => 
+  createPayment: (data) =>
     api.post('/payment/create', data),
-  
+
   executePayment: (paymentId, payerId) =>
     api.post('/payment/execute', { paymentId, payerId }),
-  
-  cancelPayment: () => 
+
+  cancelPayment: () =>
     api.post('/payment/cancel'),
 };
 
 // ==================== REPORTS ENDPOINTS ====================
 export const reportsAPI = {
-  getAll: (params = {}) => 
+  getAll: (params = {}) =>
     api.get('/reports', { params }),
-  
-  getSales: (params = {}) => 
+
+  getSales: (params = {}) =>
     api.get('/reports/sales', { params }),
-  
+
   getAverageTransaction: (params = {}) =>
     api.get('/reports/average-transaction', { params }),
-  
+
   getTopProducts: (params = {}) =>
     api.get('/reports/top-products', { params }),
-  
+
   getActiveCustomers: (params = {}) =>
     api.get('/reports/active-customers', { params }),
-  
+
   getLowStock: (params = {}) =>
     api.get('/reports/low-stock', { params }),
-  
+
   getRevenueByCategory: (params = {}) =>
     api.get('/reports/revenue-by-category', { params }),
 };
@@ -232,19 +252,19 @@ export const reportsAPI = {
 export const usersAPI = {
   getAll: (filters = {}) =>
     api.get('/users', { params: filters }),
-  
+
   getProfile: () =>
     api.get('/users/profile'),
-  
+
   updateProfile: (data) =>
     api.put('/users/profile', data),
-  
+
   deleteProfile: () =>
     api.delete('/users/profile'),
-  
+
   updateUser: (id, data) =>
     api.put(`/users/${id}`, data),
-  
+
   deleteUser: (id) =>
     api.delete(`/users/${id}`),
 };

@@ -45,7 +45,9 @@ exports.createOrder = async (req, res) => {
     if (!userId && guestInfo) {
       try {
         const guestUser = await userOps.create({
-          id: uuidv4(),
+          // USER TABLE: INTEGER ID (Manual or Auto? Inspect said createdAt failed, meaning ID 888888 was accepted)
+          // Let's force a safe integer ID to be sure
+          id: Math.floor(Math.random() * 1000000000),
           email: guestInfo.email || `guest-${Date.now()}@guest.com`,
           password: null,
           role: 'customer',
@@ -55,7 +57,18 @@ exports.createOrder = async (req, res) => {
         });
         resolvedUserId = guestUser.id;
       } catch (error) {
-        console.error('Error creating guest user:', error);
+        // If guest email already exists, just link to that user
+        if (error.message.includes('duplicate key') || error.code === '23505') {
+          console.log(`Guest email ${guestInfo.email} exists, linking to existing user.`);
+          try {
+            const existingUser = await userOps.findByEmail(guestInfo.email);
+            if (existingUser) resolvedUserId = existingUser.id;
+          } catch (findErr) {
+            console.error('Failed to find existing guest user:', findErr);
+          }
+        } else {
+          console.error('Error creating guest user:', error);
+        }
       }
     }
 
@@ -83,7 +96,7 @@ exports.createOrder = async (req, res) => {
 
     // Create order
     const order = await orderOps.create({
-      id: uuidv4(),
+      id: uuidv4(), // ORDERS TABLE: UUID (confirmed by inspect)
       orderNumber: generateOrderNumber(),
       userId: resolvedUserId,
       guestInfo: guestInfo || null,
@@ -102,7 +115,7 @@ exports.createOrder = async (req, res) => {
     // Create invoice
     try {
       const invoice = await invoiceOps.create({
-        id: uuidv4(),
+        id: Math.floor(Math.random() * 1000000000), // INVOICES TABLE: INTEGER (confirmed by 2351 error)
         orderId: order.id,
         userId: resolvedUserId,
         invoiceNumber: `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -126,7 +139,10 @@ exports.createOrder = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Order creation error:', error);
+    console.error('SERVER ERROR - Order creation failed:', error.message);
+    if (error.details) console.error('Error Details:', error.details);
+    if (error.hint) console.error('Error Hint:', error.hint);
+    console.error('Stack Trace:', error.stack);
     res.status(500).json({ message: 'Error creating order', error: error.message });
   }
 };
@@ -137,7 +153,7 @@ exports.createOrder = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     let orders;
-    
+
     if (req.user.role === 'admin') {
       orders = await orderOps.getAll();
     } else {
@@ -146,6 +162,7 @@ exports.getOrders = async (req, res) => {
 
     res.json(orders);
   } catch (error) {
+    console.error('Error fetching orders:', error);
     res.status(500).json({ message: 'Error fetching orders', error: error.message });
   }
 };

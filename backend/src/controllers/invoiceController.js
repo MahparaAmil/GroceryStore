@@ -13,11 +13,11 @@ const toInvoiceDto = (invoice) => {
 
   const items = Array.isArray(plain?.items)
     ? plain.items.map((item) => {
-        if (item?.product?.name) return item;
-        const name = item?.productName || item?.name;
-        if (!name) return item;
-        return { ...item, product: { name } };
-      })
+      if (item?.product?.name) return item;
+      const name = item?.productName || item?.name;
+      if (!name) return item;
+      return { ...item, product: { name } };
+    })
     : plain?.items;
 
   return {
@@ -43,11 +43,11 @@ const generateInvoiceNumber = () => {
 exports.getInvoices = async (req, res) => {
   try {
     let invoices;
-    
+
     if (req.user.role === "admin") {
       // Admin sees all invoices
       invoices = await invoiceOps.getAll();
-      
+
       // Enrich with user data
       invoices = await Promise.all(
         invoices.map(async (inv) => {
@@ -61,7 +61,7 @@ exports.getInvoices = async (req, res) => {
     } else {
       // Customer sees only their invoices
       invoices = await invoiceOps.getByUserId(req.user.id);
-      
+
       // Enrich with user data
       const user = await userOps.findById(req.user.id);
       invoices = invoices.map(inv => ({
@@ -162,15 +162,15 @@ exports.createInvoice = async (req, res) => {
       // Decrease stock
       const newStock = product.quantityInStock - itemQuantity;
       if (newStock < 0) {
-        return res.status(400).json({ 
-          message: `Insufficient stock for product ${product.name}` 
+        return res.status(400).json({
+          message: `Insufficient stock for product ${product.name}`
         });
       }
       await productOps.update(product.id, { quantityInStock: newStock });
     }
 
     const invoice = await invoiceOps.create({
-      id: uuidv4(),
+      id: Math.floor(Math.random() * 1000000000), // Safe Int
       userId: targetUserId,
       invoiceNumber: generateInvoiceNumber(),
       totalAmount: parseFloat(totalAmount.toFixed(2)),
@@ -384,7 +384,6 @@ exports.guestCheckout = async (req, res) => {
     if (!guestUser) {
       // Create new guest user
       guestUser = await userOps.create({
-        id: uuidv4(),
         email: guestEmail,
         password: null,
         role: "customer",
@@ -425,8 +424,8 @@ exports.guestCheckout = async (req, res) => {
       // Decrease stock
       const newStock = product.quantityInStock - itemQuantity;
       if (newStock < 0) {
-        return res.status(400).json({ 
-          message: `Insufficient stock for product ${product.name}` 
+        return res.status(400).json({
+          message: `Insufficient stock for product ${product.name}`
         });
       }
       await productOps.update(product.id, { quantityInStock: newStock });
@@ -434,7 +433,7 @@ exports.guestCheckout = async (req, res) => {
 
     // Create invoice
     const invoice = await invoiceOps.create({
-      id: uuidv4(),
+      id: Math.floor(Math.random() * 1000000000), // Safe Int
       orderId: null,
       userId: guestUser.id,
       invoiceNumber: generateInvoiceNumber(),

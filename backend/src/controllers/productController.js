@@ -6,10 +6,21 @@ const { fetchProductByBarcode, mergeProductData } = require("../services/openFoo
  */
 exports.getProducts = async (req, res) => {
   try {
-    const products = await productOps.getAll();
-    res.json(products);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    console.log(`🔍 [Backend] Fetching products (Page ${page}, Limit ${limit})...`);
+    const result = await productOps.getAll({ page, limit });
+
+    console.log(`✅ [Backend] Successfully fetched ${result.data.length} products (Total: ${result.count})`);
+    res.json(result);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching products", error: error.message });
+    console.error("❌ [Backend] Error fetching products:", error);
+    res.status(500).json({
+      message: "Error fetching products",
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
@@ -41,8 +52,8 @@ exports.createProduct = async (req, res) => {
 
     // Validate required fields
     if (!name || !price || !category || quantityInStock === undefined) {
-      return res.status(400).json({ 
-        message: "Missing required fields: name, price, category, quantityInStock" 
+      return res.status(400).json({
+        message: "Missing required fields: name, price, category, quantityInStock"
       });
     }
 
@@ -61,7 +72,7 @@ exports.createProduct = async (req, res) => {
     // If barcode is provided, fetch data from Open Food Facts
     if (barcode && barcode.trim() !== "") {
       const offData = await fetchProductByBarcode(barcode);
-      
+
       if (offData) {
         productData = mergeProductData(productData, offData);
         productData.openFoodFactsId = offData.openFoodFactsId;
@@ -72,13 +83,42 @@ exports.createProduct = async (req, res) => {
       }
     }
 
-    const product = await productOps.create(productData);
+    // Ensure Brand Consistency: Upsert brand and get ID
+    if (productData.brand) {
+      try {
+        const { brandOps } = require("../services/supabaseService");
+        const brandRecord = await brandOps.upsert({ name: productData.brand });
+        if (brandRecord && brandRecord.id) {
+          productData.brandId = brandRecord.id;
+        }
+      } catch (err) {
+        console.warn("Failed to auto-link brand:", err.message);
+        // Proceed without blocking product creation
+      }
+    }
 
-    res.status(201).json({
-      message: "Product created successfully",
-      product,
-    });
+    try {
+      const product = await productOps.create(productData);
+      res.status(201).json({
+        message: "Product created successfully",
+        product,
+      });
+    } catch (insertError) {
+      // Fallback: If 'brandId' column doesn't exist, retry without it
+      const errMsg = insertError.message || '';
+      if (errMsg.includes('brandId') && (errMsg.includes('column') || errMsg.includes('schema cache') || errMsg.includes('does not exist'))) {
+        console.warn("⚠️ 'brandId' column missing in DB. Retrying creation without linking brand.");
+        delete productData.brandId;
+        const productFallback = await productOps.create(productData);
+        return res.status(201).json({
+          message: "Product created successfully (Brand link skipped due to schema mismatch)",
+          product: productFallback,
+        });
+      }
+      throw insertError; // Re-throw other errors
+    }
   } catch (error) {
+    console.error("❌ Error creating product:", error);
     if (error.name === "SequelizeUniqueConstraintError") {
       return res.status(409).json({ message: "Barcode already exists" });
     }
@@ -106,7 +146,7 @@ exports.updateProduct = async (req, res) => {
     // If refreshFromBarcode is true and barcode is provided, fetch from Open Food Facts
     if (refreshFromBarcode && barcode && barcode.trim() !== "") {
       const offData = await fetchProductByBarcode(barcode);
-      
+
       if (offData) {
         updates = {
           name: offData.name || product.name,
@@ -162,5 +202,28 @@ exports.deleteProduct = async (req, res) => {
     res.json({ message: "Product deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting product", error: error.message });
+  }
+};
+
+/**
+ * GET /products/lookup/:barcode - Lookup product in Open Food Facts
+ */
+exports.lookupProduct = async (req, res) => {
+  try {
+    const { barcode } = req.params;
+
+    if (!barcode) {
+      return res.status(400).json({ message: "Barcode is required" });
+    }
+
+    const offData = await fetchProductByBarcode(barcode);
+
+    if (!offData) {
+      return res.status(404).json({ message: "Product not found in Open Food Facts" });
+    }
+
+    res.json(offData);
+  } catch (error) {
+    res.status(500).json({ message: "Error looking up product", error: error.message });
   }
 };

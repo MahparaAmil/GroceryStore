@@ -4,6 +4,27 @@ node_modules/
 
 # Frontend build
 dist/
+build/
 
 # Logs
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+coverage/
+
+# Supabase
+supabase/

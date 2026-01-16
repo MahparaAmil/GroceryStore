@@ -27,14 +27,18 @@ const initializeTables = async () => {
 
 // Product operations
 const productOps = {
-  getAll: async () => {
-    const { data, error } = await supabase
+  getAll: async ({ page = 1, limit = 50 } = {}) => {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, count, error } = await supabase
       .from('products')
-      .select('*')
-      .order('createdAt', { ascending: false });
-    
+      .select('*', { count: 'exact' })
+      .order('createdAt', { ascending: false })
+      .range(from, to);
+
     if (error) throw new Error(error.message);
-    return data;
+    return { data, count, page, limit };
   },
 
   getById: async (id) => {
@@ -43,22 +47,29 @@ const productOps = {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
 
   create: async (productData) => {
+    const { tags, gallery, ...cleanData } = productData;
     const { data, error } = await supabase
       .from('products')
       .insert([{
-        ...productData,
+        ...cleanData,
+        // Store tags/gallery in nutritionalInfo (JSON column) to avoid schema issues
+        nutritionalInfo: {
+          ...cleanData.nutritionalInfo,
+          tags: tags || [],
+          gallery: gallery || []
+        },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }])
       .select()
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -73,7 +84,7 @@ const productOps = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -83,9 +94,73 @@ const productOps = {
       .from('products')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw new Error(error.message);
     return true;
+  },
+
+  upsert: async (productData) => {
+    const { tags, gallery, ...cleanData } = productData;
+
+    // Prepare data for insertion/update
+    const payload = {
+      ...cleanData,
+      nutritionalInfo: {
+        ...cleanData.nutritionalInfo,
+        tags: tags || [],
+        gallery: gallery || []
+      },
+      updatedAt: new Date().toISOString()
+    };
+
+    // If creating, add createdAt
+    if (!payload.id) {
+      payload.createdAt = new Date().toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from('products')
+      .upsert(payload, { onConflict: 'barcode' }) // Assumes barcode is unique constraint
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+};
+
+// Brand operations
+const brandOps = {
+  upsert: async (brandData) => {
+    // Try to find by name first to avoid duplicates if unique constraint on name isn't strict string
+    // Or just use Supabase upsert if 'name' is unique
+    const { data, error } = await supabase
+      .from('brands')
+      .upsert({
+        ...brandData,
+        updatedAt: new Date().toISOString()
+      }, { onConflict: 'name' })
+      .select()
+      .single();
+
+    if (error) {
+      // Graceful fallback if brands table doesn't exist yet (for development resilience)
+      if (error.code === '42P01') {
+        console.warn("⚠️ 'brands' table does not exist. Skipping brand upsert.");
+        return { id: null, ...brandData };
+      }
+      throw new Error(error.message);
+    }
+    return data;
+  },
+
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*');
+
+    if (error) return []; // Return empty if error (e.g. missing table)
+    return data;
   }
 };
 
@@ -101,7 +176,7 @@ const orderOps = {
       }])
       .select()
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -111,7 +186,7 @@ const orderOps = {
       .from('Orders')
       .select('*')
       .order('createdAt', { ascending: false });
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -122,7 +197,7 @@ const orderOps = {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -133,7 +208,7 @@ const orderOps = {
       .select('*')
       .eq('userId', userId)
       .order('createdAt', { ascending: false });
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -148,7 +223,7 @@ const orderOps = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -158,7 +233,7 @@ const orderOps = {
       .from('Orders')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw new Error(error.message);
     return true;
   }
@@ -176,7 +251,7 @@ const invoiceOps = {
       }])
       .select()
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -186,7 +261,7 @@ const invoiceOps = {
       .from('Invoices')
       .select('*')
       .order('createdAt', { ascending: false });
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -197,7 +272,7 @@ const invoiceOps = {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -208,9 +283,18 @@ const invoiceOps = {
       .select('*')
       .eq('userId', userId)
       .order('createdAt', { ascending: false });
-    
+
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  countTotal: async () => {
+    const { count, error } = await supabase
+      .from('Invoices')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) throw new Error(error.message);
+    return count;
   },
 
   countByStatus: async (status) => {
@@ -218,7 +302,7 @@ const invoiceOps = {
       .from('Invoices')
       .select('*', { count: 'exact', head: true })
       .eq('status', status);
-    
+
     if (error) throw new Error(error.message);
     return count || 0;
   },
@@ -227,7 +311,7 @@ const invoiceOps = {
     const { count, error } = await supabase
       .from('Invoices')
       .select('*', { count: 'exact', head: true });
-    
+
     if (error) throw new Error(error.message);
     return count || 0;
   },
@@ -242,7 +326,7 @@ const invoiceOps = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -252,7 +336,7 @@ const invoiceOps = {
       .from('Invoices')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw new Error(error.message);
     return true;
   }
@@ -263,7 +347,7 @@ const userOps = {
   create: async (userData) => {
     const { email, password, role = 'customer', ...rest } = userData;
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
-    
+
     const { data, error } = await supabase
       .from('users')
       .insert([{
@@ -276,7 +360,7 @@ const userOps = {
       }])
       .select()
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -287,7 +371,7 @@ const userOps = {
       .select('*')
       .eq('email', email)
       .single();
-    
+
     if (error && error.code !== 'PGRST116') throw new Error(error.message);
     return data;
   },
@@ -298,7 +382,7 @@ const userOps = {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error && error.code !== 'PGRST116') throw new Error(error.message);
     return data;
   },
@@ -307,7 +391,7 @@ const userOps = {
     const { data, error } = await supabase
       .from('users')
       .select('*');
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -319,7 +403,7 @@ const userOps = {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw new Error(error.message);
     return data;
   },
@@ -329,7 +413,7 @@ const userOps = {
       .from('users')
       .delete()
       .eq('id', id);
-    
+
     if (error) throw new Error(error.message);
     return true;
   },
@@ -343,6 +427,7 @@ module.exports = {
   supabase,
   userOps,
   productOps,
+  brandOps,
   orderOps,
   invoiceOps,
   initializeTables

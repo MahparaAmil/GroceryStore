@@ -1,22 +1,38 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
+import Products from './pages/Products';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import LoginTest from './pages/LoginTest';
+import Brands from './pages/Brands';
+import Categories from './pages/Categories';
+import OrdersPage from './pages/OrdersPage';
+import OrderDetailsPage from './pages/OrderDetailsPage';
+import { ThemeProvider } from './context/ThemeContext';
 import './styles/App.css';
+
+
+function ConditionalNavbar() {
+  const location = useLocation();
+  // Don't show global navbar on any admin routes
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
+  return <Navbar />;
+}
 
 function ProtectedRoute({ children, isAdmin }) {
   // Check localStorage directly for most reliable auth check
   const savedUser = localStorage.getItem('user');
   const token = localStorage.getItem('token');
-  
+
   let isUserAdmin = false;
   if (savedUser && token) {
     try {
@@ -26,13 +42,7 @@ function ProtectedRoute({ children, isAdmin }) {
       console.error('Error parsing user from localStorage:', e);
     }
   }
-  
-  console.log('🛡️ ProtectedRoute check:');
-  console.log('  Token:', token ? 'EXISTS' : 'MISSING');
-  console.log('  User:', savedUser ? 'EXISTS' : 'MISSING');
-  console.log('  Is admin:', isUserAdmin);
-  console.log('  Allowing access:', isUserAdmin ? 'YES' : 'NO');
-  
+
   return isUserAdmin ? children : <Navigate to="/admin/login" />;
 }
 
@@ -64,37 +74,59 @@ function App() {
   }, [isAdmin]);
 
   return (
-    <Router>
-      <CartProvider>
-        <div className="app-wrapper">
-          <Navbar />
-          <main className="app-main">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/login-test" element={<LoginTest />} />
+    <ThemeProvider>
+      <Router>
+        <CartProvider>
+          <div className="app-wrapper">
+            <ConditionalNavbar />
+            <main className="app-main">
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                <Route path="/brands" element={<Brands />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/login-test" element={<LoginTest />} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute isAdmin={isAdminCurrent}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Admin Routes */}
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute isAdmin={isAdminCurrent}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/orders"
+                  element={
+                    <ProtectedRoute isAdmin={isAdminCurrent}>
+                      <OrdersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/orders/:id"
+                  element={
+                    <ProtectedRoute isAdmin={isAdminCurrent}>
+                      <OrderDetailsPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Catch all */}
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </main>
-        </div>
-      </CartProvider>
-    </Router>
+                {/* Catch all */}
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </main>
+          </div>
+        </CartProvider>
+      </Router>
+    </ThemeProvider>
   );
 }
 

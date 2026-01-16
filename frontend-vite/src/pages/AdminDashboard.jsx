@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
   const [loadingSummary, setLoadingSummary] = useState(false);
-  
+
   // Reports state
   const [reports, setReports] = useState({
     sales: null,
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
     revenueByCategory: null,
   });
   const [loadingReports, setLoadingReports] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     brand: '',
@@ -39,13 +39,14 @@ export default function AdminDashboard() {
     price: '',
     quantityInStock: '',
     category: '',
+    barcode: '',
   });
 
   useEffect(() => {
     console.log('🔍 AdminDashboard mounted, checking auth...');
     console.log('  isAdmin from hook:', isAdmin);
     console.log('  user from hook:', user);
-    
+
     // Check localStorage directly
     const checkAuth = () => {
       const savedUser = localStorage.getItem('user');
@@ -53,25 +54,25 @@ export default function AdminDashboard() {
       console.log('  Checking localStorage:');
       console.log('    Token:', token ? 'EXISTS' : 'MISSING');
       console.log('    User:', savedUser);
-      
+
       if (!savedUser || !token) {
         console.log('❌ No token or user in localStorage, redirecting to login');
         logout();
         navigate('/admin/login');
         return false;
       }
-      
+
       try {
         const userData = JSON.parse(savedUser);
         console.log('    Parsed user:', userData);
-        
+
         if (userData.role !== 'admin') {
           console.log(`❌ User role is "${userData.role}", not "admin", redirecting to login`);
           logout();
           navigate('/admin/login');
           return false;
         }
-        
+
         console.log('✅ User is admin, loading dashboard');
         return true;
       } catch (e) {
@@ -81,7 +82,7 @@ export default function AdminDashboard() {
         return false;
       }
     };
-    
+
     if (checkAuth()) {
       fetchProducts();
       loadDashboardData();
@@ -151,7 +152,7 @@ export default function AdminDashboard() {
         reportsAPI.getLowStock({ threshold: 10 }),
         reportsAPI.getRevenueByCategory({ days: 30 }),
       ]);
-      
+
       setReports({
         sales: salesData.data,
         avgTransaction: avgTransData.data,
@@ -184,7 +185,7 @@ export default function AdminDashboard() {
         price: parseFloat(formData.price),
         quantityInStock: parseInt(formData.quantityInStock),
       });
-      setFormData({ name: '', brand: '', description: '', price: '', quantityInStock: '', category: '' });
+      setFormData({ name: '', brand: '', description: '', price: '', quantityInStock: '', category: '', barcode: '' });
       setShowForm(false);
       setSuccess('Product created successfully!');
       fetchProducts();
@@ -240,6 +241,7 @@ export default function AdminDashboard() {
         price: '',
         quantityInStock: '',
         category: '',
+        barcode: '',
       });
       fetchProducts();
     } catch (err) {
@@ -257,6 +259,7 @@ export default function AdminDashboard() {
       price: '',
       quantityInStock: '',
       category: '',
+      barcode: '',
     });
   };
 
@@ -266,44 +269,57 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="admin-dashboard">
-      <div className="admin-header">
-        <div className="header-content">
-          <h1>Admin Dashboard</h1>
-          <p>Welcome back, {user?.email}</p>
+    <div className="admin-dashboard-layout">
+      {/* Unified Admin Header */}
+      <header className="fresh-admin-header">
+        <div className="brand-section">
+          <div className="logo-icon">🛒</div>
+          <h1>Fresh Grocery <span className="admin-badge">Admin</span></h1>
         </div>
-        <button onClick={handleLogout} className="logout-btn">
-          Logout
-        </button>
-      </div>
 
-      {/* Navigation Tabs */}
-      <div className="admin-tabs">
-        <button 
-          className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          📊 Overview
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'products' ? 'active' : ''}`}
-          onClick={() => setActiveTab('products')}
-        >
-          📦 Products
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'reports' ? 'active' : ''}`}
-          onClick={() => setActiveTab('reports')}
-        >
-          📈 Reports
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('users'); loadUsers(); }}
-        >
-          👥 Users
-        </button>
-      </div>
+        <nav className="admin-nav">
+          <button
+            className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            Dashboard
+          </button>
+          <button
+            className={`nav-item ${activeTab === 'products' ? 'active' : ''}`}
+            onClick={() => setActiveTab('products')}
+          >
+            Products
+          </button>
+          <button
+            className="nav-item"
+            onClick={() => navigate('/admin/orders')}
+          >
+            Orders
+          </button>
+          <button
+            className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reports')}
+          >
+            Reports
+          </button>
+          <button
+            className={`nav-item ${activeTab === 'users' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('users'); loadUsers(); }}
+          >
+            Users
+          </button>
+        </nav>
+
+        <div className="user-section">
+          <div className="user-info">
+            <span className="user-email">{user?.email}</span>
+            <span className="user-role">Administrator</span>
+          </div>
+          <button onClick={handleLogout} className="logout-btn-text">
+            Logout
+          </button>
+        </div>
+      </header>
 
       <div className="admin-content">
         {error && (
@@ -358,15 +374,15 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {orders.slice(0, 10).map((order) => (
-                        <tr key={order.orderId}>
-                          <td>#{order.orderId}</td>
-                          <td>{order.userName}</td>
-                          <td>{order.userEmail}</td>
+                      {orders.slice(0, 10).map((order, idx) => (
+                        <tr key={order.id || order.orderId || idx}>
+                          <td>#{order.id || order.orderId || 'N/A'}</td>
+                          <td>{order.userName || (order.user ? order.user.email : 'Guest')}</td>
+                          <td>{order.userEmail || (order.user ? order.user.email : '-')}</td>
                           <td>${parseFloat(order.totalAmount || 0).toFixed(2)}</td>
                           <td><span className={`status ${order.status?.toLowerCase()}`}>{order.status}</span></td>
                           <td><span className={`payment ${order.paymentStatus?.toLowerCase()}`}>{order.paymentStatus}</span></td>
-                          <td>{new Date(order.orderDate).toLocaleDateString()}</td>
+                          <td>{new Date(order.orderDate || order.createdAt).toLocaleDateString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -399,6 +415,45 @@ export default function AdminDashboard() {
               <div className="add-product-form-section">
                 <form onSubmit={editingId ? handleEditSubmit : handleSubmit} className="product-form">
                   <h2>{editingId ? 'Edit Product' : 'Add New Product'}</h2>
+
+                  <div className="form-group">
+                    <label htmlFor="barcode">Barcode (ISBN/UPC)</label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <input
+                        type="text"
+                        id="barcode"
+                        name="barcode"
+                        value={formData.barcode || ''}
+                        onChange={handleChange}
+                        placeholder="Scan or enter barcode"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={async () => {
+                          if (!formData.barcode) return alert('Please enter a barcode');
+                          try {
+                            const res = await productsAPI.lookupByBarcode(formData.barcode);
+                            const data = res.data;
+                            setFormData(prev => ({
+                              ...prev,
+                              name: data.name || prev.name,
+                              brand: data.brand || prev.brand,
+                              category: data.category || prev.category,
+                              description: data.description || prev.description,
+                              picture: data.picture || prev.picture,
+                            }));
+                            setSuccess('Found product in OpenFoodFacts!');
+                          } catch (err) {
+                            setError('Product not found in OpenFoodFacts database');
+                          }
+                        }}
+                      >
+                        🔍 Lookup
+                      </button>
+                    </div>
+                  </div>
 
                   <div className="form-group">
                     <label htmlFor="name">Product Name *</label>
@@ -483,7 +538,12 @@ export default function AdminDashboard() {
               {loading ? (
                 <div className="loading">Loading products...</div>
               ) : products.length === 0 ? (
-                <div className="empty-state">No products found</div>
+                <div className="empty-state">
+                  <p>No products found</p>
+                  <small style={{ color: '#888' }}>
+                    (Debug: Total in DB header: {products.length}, Loading: {loading ? 'Yes' : 'No'}, Error: {error ? JSON.stringify(error) : 'None'})
+                  </small>
+                </div>
               ) : (
                 <div className="table-wrapper">
                   <table className="products-table">
@@ -513,7 +573,7 @@ export default function AdminDashboard() {
                           <td>{product.category || '-'}</td>
                           <td>
                             <div className="action-buttons">
-                              <button 
+                              <button
                                 onClick={() => handleEditClick(product)}
                                 className="btn btn-sm btn-secondary"
                               >
@@ -545,30 +605,30 @@ export default function AdminDashboard() {
             ) : (
               <div className="reports-section">
                 <h2>Business Analytics & Reports</h2>
-                
+
                 <div className="reports-grid">
                   {reports.sales && (
                     <div className="report-card">
                       <h3>Total Sales (30 days)</h3>
-                      <p className="report-value">${reports.sales.totalSales?.toFixed(2) || '0.00'}</p>
+                      <p className="report-value">${parseFloat(reports.sales.totalSales || 0).toFixed(2)}</p>
                       <p className="report-detail">Orders: {reports.sales.orderCount || 0}</p>
                     </div>
                   )}
-                  
+
                   {reports.avgTransaction && (
                     <div className="report-card">
                       <h3>Avg Transaction Value</h3>
-                      <p className="report-value">${reports.avgTransaction.averageTransaction?.toFixed(2) || '0.00'}</p>
+                      <p className="report-value">${parseFloat(reports.avgTransaction.averageTransactionValue || reports.avgTransaction.averageTransaction || 0).toFixed(2)}</p>
                     </div>
                   )}
-                  
+
                   {reports.activeCustomers && (
                     <div className="report-card">
                       <h3>Active Customers (30 days)</h3>
                       <p className="report-value">{reports.activeCustomers.activeCustomerCount || 0}</p>
                     </div>
                   )}
-                  
+
                   {reports.lowStock && (
                     <div className="report-card alert-card">
                       <h3>Low Stock Items</h3>
@@ -594,7 +654,7 @@ export default function AdminDashboard() {
                           <tr key={idx}>
                             <td>{p.productName || p.name || 'Unknown'}</td>
                             <td>{p.unitsSold || p.quantity || 0}</td>
-                            <td>${(p.revenue || p.totalRevenue || 0).toFixed(2)}</td>
+                            <td>${parseFloat(p.revenue || p.totalRevenue || 0).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -641,7 +701,7 @@ export default function AdminDashboard() {
                         {reports.revenueByCategory.map((c, idx) => (
                           <tr key={idx}>
                             <td>{c.category || 'Uncategorized'}</td>
-                            <td>${(c.totalRevenue || c.revenue || 0).toFixed(2)}</td>
+                            <td>${parseFloat(c.totalRevenue || c.revenue || 0).toFixed(2)}</td>
                             <td>{c.percentageOfTotal || '0'}%</td>
                           </tr>
                         ))}
@@ -682,7 +742,7 @@ export default function AdminDashboard() {
                         </span></td>
                         <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                         <td>
-                          <button 
+                          <button
                             className="btn-delete"
                             onClick={() => handleDeleteUser(user.id)}
                             title="Delete user"

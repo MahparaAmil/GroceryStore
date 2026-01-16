@@ -19,13 +19,51 @@ exports.getUsers = async (req, res) => {
 };
 
 /**
+ * POST /users - Admin only: Create a new user
+ * Project Requirement: User Management
+ */
+exports.createUser = async (req, res) => {
+  try {
+    const { email, password, role, firstName, lastName, phone, billingAddress } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    const existingUser = await userOps.findByEmail(email);
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    const newUser = await userOps.create({
+      email,
+      password,
+      role: role || 'customer',
+      firstName,
+      lastName,
+      phone,
+      billingAddress
+    });
+
+    const { password: _, ...safeUser } = newUser;
+
+    res.status(201).json({
+      message: "User created successfully",
+      user: safeUser
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating user", error: error.message });
+  }
+};
+
+/**
  * GET /users/profile - Get current user profile
  */
 exports.getProfile = async (req, res) => {
   try {
     const user = await userOps.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
-    
+
     const { password, ...safeUser } = user;
     res.json(safeUser);
   } catch (error) {

@@ -1,10 +1,11 @@
 import { useCart } from '../context/CartContext';
 import '../styles/ProductCard.css';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, onClick }) {
   const { addToCart } = useCart();
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e) => {
+    e.stopPropagation(); // Prevent opening the modal
     // Ensure price is a number for cart calculations
     const productWithPrice = {
       ...product,
@@ -14,46 +15,53 @@ export default function ProductCard({ product }) {
   };
 
   const isOutOfStock = product.stock === 0;
-  
+
   // Check if image is a URL (http, https, /, or data URI)
   const isImageUrl = product.picture && (
-    product.picture.startsWith('http') || 
-    product.picture.startsWith('/') || 
+    product.picture.startsWith('http') ||
+    product.picture.startsWith('/') ||
     product.picture.startsWith('data:')
   );
 
   return (
-    <div className="product-card">
-      <div className="product-image">
+    <div className="product-card" onClick={onClick} style={{ cursor: 'pointer' }}>
+      <div className="product-image-wrapper">
         {isImageUrl ? (
-          <img src={product.picture} alt={product.name} />
+          <img src={product.picture} alt={product.name} className="product-img" />
         ) : (
           <div className="product-placeholder">{product.picture || '🥕'}</div>
         )}
+
+        {/* Optional Badge */}
+        {product.onSale && <span className="badge badge-sale">Sale</span>}
+        {isOutOfStock && <span className="badge badge-out">Sold Out</span>}
       </div>
-      <div className="product-content">
-        <h3 className="product-name">{product.name}</h3>
-        <p className="product-description">{product.description}</p>
-        
-        <div className="product-footer">
-          <div className="product-price-section">
-            <span className="product-price">${product.price.toFixed(2)}</span>
-            {product.stock !== undefined && (
-              <span className={`product-stock ${isOutOfStock ? 'out-of-stock' : ''}`}>
-                {isOutOfStock ? 'Out of Stock' : `Stock: ${product.stock}`}
-              </span>
-            )}
+
+      <div className="product-body">
+        <div className="product-category">{product.category || 'Groceries'}</div>
+        <h3 className="product-title" title={product.name}>{product.name}</h3>
+
+        <div className="product-rating">
+          <span className="stars">★★★★★</span>
+          <span className="rating-text">(3.8)</span>
+        </div>
+
+        <div className="product-action-row">
+          <div className="product-price">
+            ${parseFloat(product.price).toFixed(2)}
           </div>
-          
+
           <button
             onClick={handleAddToCart}
-            className="add-to-cart-btn"
+            className="btn-add"
             disabled={isOutOfStock}
-            title={isOutOfStock ? 'Product out of stock' : 'Add to cart'}
           >
-            {isOutOfStock ? '✕ Out' : '+ Add'}
+            {isOutOfStock ? 'Out' : '+ Add'}
           </button>
         </div>
+        {product.stock > 0 && product.stock < 10 && (
+          <div className="low-stock-alert">Only {product.stock} left</div>
+        )}
       </div>
     </div>
   );

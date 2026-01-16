@@ -16,7 +16,8 @@ const reportRoutes = require("./routes/reportRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 
-// Swagger definition
+const path = require("path");
+
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -41,13 +42,13 @@ const swaggerOptions = {
       },
     },
   },
-  apis: ["./src/routes/*.js"],
+  apis: [path.join(__dirname, "routes/*.js")],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 app.use(cors());
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(morgan("dev"));
 

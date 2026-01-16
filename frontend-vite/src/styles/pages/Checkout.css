@@ -6,15 +6,15 @@
 
 .checkout-page h1 {
   margin-bottom: 2rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .checkout-page .empty-state {
-  background: white;
+  background: var(--bg-card);
   padding: 2rem;
   border-radius: 8px;
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .checkout-container {
@@ -36,19 +36,21 @@
 }
 
 .order-review {
-  background: white;
+  background: var(--bg-card);
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   height: fit-content;
+  border: 1px solid var(--border-color);
 }
 
 .order-review h2 {
   margin-top: 0;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #27ae60;
+  border-bottom: 2px solid var(--accent-color);
   font-size: 1.2rem;
+  color: var(--text-primary);
 }
 
 .review-items {
@@ -62,7 +64,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .review-item:last-child {
@@ -77,21 +79,21 @@
 
 .item-name {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .item-qty {
-  color: #999;
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
 .item-price {
   font-weight: 600;
-  color: #27ae60;
+  color: var(--accent-color);
 }
 
 .review-totals {
-  border-top: 2px solid #27ae60;
+  border-top: 2px solid var(--accent-color);
   padding-top: 1rem;
 }
 
@@ -100,30 +102,33 @@
   justify-content: space-between;
   padding: 0.5rem 0;
   font-size: 0.95rem;
+  color: var(--text-secondary);
 }
 
 .review-total-row.final {
   padding-top: 0.75rem;
   font-weight: bold;
   font-size: 1.1rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
   padding-top: 0.75rem;
+  color: var(--text-primary);
 }
 
 .review-total-row.final span:last-child {
-  color: #27ae60;
+  color: var(--accent-color);
 }
 
 .payment-methods {
-  background: white;
+  background: var(--bg-card);
   padding: 1.5rem;
   border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .payment-methods h3 {
   margin-top: 0;
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .method {
@@ -131,15 +136,16 @@
   align-items: center;
   padding: 0.75rem;
   margin-bottom: 0.75rem;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s;
+  background: var(--bg-secondary);
 }
 
 .method:hover {
-  border-color: #27ae60;
-  background-color: #f9f9f9;
+  border-color: var(--accent-color);
+  background-color: var(--bg-hover);
 }
 
 .method input[type="radio"] {

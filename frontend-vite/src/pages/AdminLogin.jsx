@@ -28,30 +28,30 @@ export default function AdminLogin() {
       console.log('🔐 LOGIN ATTEMPT');
       console.log('  Email:', formData.email);
       console.log('  Password:', formData.password ? '****' : 'empty');
-      
+
       const user = await login(formData.email, formData.password);
       console.log('✅ Login hook returned:', user);
-      
+
       // Small delay to ensure all updates are complete
       console.log('⏳ Waiting 500ms before checking localStorage and navigating...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Check localStorage after login
       const token = localStorage.getItem('token');
       const savedUser = localStorage.getItem('user');
       console.log('📦 LocalStorage after wait:');
       console.log('  Token exists:', !!token);
       console.log('  User:', savedUser);
-      
+
       if (!savedUser || !token) {
         console.error('❌ Token or user not in localStorage');
         setError('Login failed: Data not saved to storage');
         return;
       }
-      
+
       const userData = JSON.parse(savedUser);
       console.log('👤 Parsed user:', userData);
-      
+
       if (userData.role !== 'admin') {
         console.error(`❌ User role is "${userData.role}", not "admin"`);
         setError(`Login failed: You are a ${userData.role}, not an admin`);
@@ -59,10 +59,10 @@ export default function AdminLogin() {
         localStorage.removeItem('user');
         return;
       }
-      
-      console.log('✅ All checks passed, navigating to /admin');
-      navigate('/admin');
-      
+
+      console.log('✅ All checks passed, navigating to /admin/dashboard');
+      navigate('/admin/dashboard');
+
     } catch (err) {
       console.error('❌ Login error:', err);
       const errorMessage = err.message || 'Login failed. Please try again.';
@@ -76,7 +76,7 @@ export default function AdminLogin() {
         <div className="login-header">
           <div className="login-logo">🛒</div>
           <h1>Admin Login</h1>
-          <p>Manage your grocery store</p>
+          <p>Please sign in to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form" noValidate>
@@ -122,11 +122,6 @@ export default function AdminLogin() {
         <div className="login-footer">
           <p>Not an admin? <a href="/">Return to store</a></p>
         </div>
-      </div>
-
-      <div className="login-side-info">
-        <h2>Welcome Back!</h2>
-        <p>Access your admin dashboard to manage products, orders, and more.</p>
       </div>
     </div>
   );

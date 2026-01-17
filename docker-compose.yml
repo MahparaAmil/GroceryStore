@@ -61,8 +61,6 @@ services:
       - /rails/log
     networks:
       - grocery-store-network
-    depends_on:
-      - nginx
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/products"]
       interval: 30s

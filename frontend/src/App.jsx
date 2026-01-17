@@ -14,6 +14,7 @@ import LoginTest from './pages/LoginTest';
 import Brands from './pages/Brands';
 import Categories from './pages/Categories';
 import OrdersPage from './pages/OrdersPage';
+import TrackOrder from './pages/TrackOrder';
 import OrderDetailsPage from './pages/OrderDetailsPage';
 import { ThemeProvider } from './context/ThemeContext';
 import './styles/App.css';
@@ -86,9 +87,10 @@ function App() {
                 <Route path="/products" element={<Products />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
-                <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
                 <Route path="/brands" element={<Brands />} />
                 <Route path="/categories" element={<Categories />} />
+                <Route path="/track-order" element={<TrackOrder />} />
                 <Route path="/login-test" element={<LoginTest />} />
 
                 {/* Admin Routes */}

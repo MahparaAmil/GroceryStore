@@ -2,7 +2,7 @@ module Api
   module V1
     class OrdersController < ApplicationController
       skip_before_action :verify_authenticity_token
-      before_action :authenticate_user!, except: [:create]
+      before_action :authenticate_user!, except: [:create, :show]
       before_action :set_order, only: [:show, :update_status, :destroy]
 
       # GET /api/v1/orders

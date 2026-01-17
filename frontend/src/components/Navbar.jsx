@@ -23,6 +23,7 @@ export default function Navbar() {
           <Link to="/" className="nav-link">Home</Link>
           <Link to="/brands" className="nav-link">Brands</Link>
           <Link to="/categories" className="nav-link">Categories</Link>
+          <Link to="/track-order" className="nav-link">Track Order</Link>
           <Link to="/cart" className="nav-link cart-link">
             Cart {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </Link>

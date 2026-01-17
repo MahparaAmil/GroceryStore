@@ -10,9 +10,76 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_17_113015) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_17_121117) do
+  create_schema "auth"
+  create_schema "extensions"
+  create_schema "graphql"
+  create_schema "graphql_public"
+  create_schema "pgbouncer"
+  create_schema "realtime"
+  create_schema "storage"
+  create_schema "vault"
+
   # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_graphql"
+  enable_extension "pg_stat_statements"
+  enable_extension "pgcrypto"
   enable_extension "plpgsql"
+  enable_extension "supabase_vault"
+  enable_extension "uuid-ossp"
+
+  # Custom types defined in this database.
+  # Note that some types may not work with other database engines. Be careful if changing database.
+  create_enum "enum_Invoices_paymentStatus", ["pending", "completed", "failed", "refunded"]
+  create_enum "enum_Invoices_status", ["pending", "completed", "cancelled"]
+  create_enum "enum_Orders_deliveryMethod", ["standard", "express", "same"]
+  create_enum "enum_Orders_paymentMethod", ["card", "cash"]
+  create_enum "enum_Orders_paymentStatus", ["pending", "paid", "failed"]
+  create_enum "enum_Orders_status", ["pending", "confirmed", "preparing", "ready", "delivered", "cancelled"]
+  create_enum "enum_invoices_paymentStatus", ["pending", "completed", "failed", "refunded"]
+  create_enum "enum_invoices_status", ["pending", "completed", "cancelled"]
+  create_enum "enum_users_role", ["admin", "customer"]
+
+  create_table "Invoices", id: :serial, force: :cascade do |t|
+    t.integer "orderId"
+    t.integer "userId", null: false
+    t.string "invoiceNumber", limit: 255, null: false
+    t.decimal "totalAmount", precision: 10, scale: 2, default: "0.0", null: false
+    t.json "items", default: [], null: false
+    t.enum "status", default: "pending", enum_type: ""enum_Invoices_status""
+    t.enum "paymentStatus", default: "pending", enum_type: ""enum_Invoices_paymentStatus""
+    t.string "paymentProvider", limit: 255
+    t.string "paymentReference", limit: 255
+    t.string "paymentMethod", limit: 255
+    t.timestamptz "paidAt"
+    t.string "billingAddress", limit: 255
+    t.string "billingCity", limit: 255
+    t.string "billingZipCode", limit: 255
+    t.string "billingCountry", limit: 255
+    t.text "notes"
+    t.timestamptz "createdAt", null: false
+    t.timestamptz "updatedAt", null: false
+  end
+
+  create_table "Orders", id: :uuid, default: nil, force: :cascade do |t|
+    t.string "orderNumber", limit: 255, null: false
+    t.integer "userId"
+    t.json "guestInfo"
+    t.json "items", null: false
+    t.decimal "subtotal", precision: 10, scale: 2, null: false
+    t.decimal "deliveryFee", precision: 10, scale: 2, null: false
+    t.decimal "total", precision: 10, scale: 2, null: false
+    t.enum "status", default: "pending", enum_type: ""enum_Orders_status""
+    t.enum "deliveryMethod", null: false, enum_type: ""enum_Orders_deliveryMethod""
+    t.json "deliveryAddress", null: false
+    t.text "deliveryInstructions"
+    t.enum "paymentMethod", null: false, enum_type: ""enum_Orders_paymentMethod""
+    t.enum "paymentStatus", default: "pending", enum_type: ""enum_Orders_paymentStatus""
+    t.timestamptz "estimatedDelivery"
+    t.timestamptz "actualDelivery"
+    t.timestamptz "createdAt", null: false
+    t.timestamptz "updatedAt", null: false
+  end
 
   create_table "admin_users", force: :cascade do |t|
     t.string "email", default: "", null: false

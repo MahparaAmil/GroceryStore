@@ -45,6 +45,22 @@ module Api
         end
       end
 
+      def check_email
+        user = User.find_by(email: params[:email])
+        if user
+          render json: {
+            exists: true,
+            isGuest: user.guest?,
+            role: user.role
+          }
+        else
+          render json: {
+            exists: false,
+            isGuest: false
+          }
+        end
+      end
+
       private
 
       def encode_token(payload)

@@ -68,8 +68,14 @@ export default function OrderConfirmation() {
           <div className="detail-grid">
             <div className="detail-item">
               <label>Order ID</label>
-              <span className="detail-value">{order.id}</span>
+              <span className="detail-value">#{order.id}</span>
             </div>
+            {order.invoice && (
+              <div className="detail-item">
+                <label>Invoice Number</label>
+                <span className="detail-value">{order.invoice.invoice_number}</span>
+              </div>
+            )}
             <div className="detail-item">
               <label>Order Date</label>
               <span className="detail-value">

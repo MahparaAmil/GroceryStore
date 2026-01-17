@@ -45,3 +45,6 @@ group :development, :test do
 end
 
 
+gem "chartkick"
+gem "groupdate"
+gem "dotenv-rails", groups: [:development, :test]

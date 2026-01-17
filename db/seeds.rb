@@ -19,21 +19,15 @@ AdminUser.find_or_create_by!(email: 'employee@example.com') do |admin|
   admin.role = :employee
 end
 
-# Sample Products
-Product.find_or_create_by!(name: 'Apple') do |product|
-  product.price = 1.99
-  product.stock = 100
-  product.description = 'Fresh Apple'
-  product.category = 'Fruits'
-end
+# Sample Products (Commented out as sync:products handles this with the correct schema)
+# cat = Category.find_or_create_by!(name: 'Fruits')
+# Product.find_or_create_by!(name: 'Apple') do |product|
+#   product.price = 1.99
+#   product.stock = 100
+#   product.description = 'Fresh Apple'
+#   product.category = cat
+# end
 
-Product.find_or_create_by!(name: 'Bread') do |product|
-  product.price = 2.50
-  product.stock = 50
-  product.description = 'Whole Wheat'
-  product.category = 'Bakery'
-end
-
-puts "✅ Seeded Admin Users and Products"
+puts "✅ Seeded Admin Users"
 puts "   API Admin: admin@example.com / password"
 puts "   ActiveAdmin: admin@example.com / password"

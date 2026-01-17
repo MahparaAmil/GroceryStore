@@ -18,9 +18,12 @@ Rails.application.routes.draw do
         end
       end
       resources :users, only: [:index, :show, :update, :destroy]
+      resources :invoices
+      get 'reports', to: 'reports#index'
       
       post 'auth/login', to: 'auth#login'
       post 'auth/signup', to: 'auth#signup'
+      post 'auth/check-email', to: 'auth#check_email'
       get 'auth/me', to: 'auth#me'
       
       # Admin dashboard endpoints

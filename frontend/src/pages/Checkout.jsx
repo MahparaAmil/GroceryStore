@@ -42,35 +42,36 @@ export default function Checkout() {
       const total = parseFloat((subtotal * 1.08).toFixed(2)); // With tax
 
       // Build order data based on checkout type
-      const orderData = {
-        // For logged-in users (login or signup during checkout)
-        userId: checkoutUser.user ? checkoutUser.user.id : null,
-        // For guest users - send minimal info
-        guestInfo: checkoutUser.isGuest ? {
-          name: `${formData.firstName} ${formData.lastName}`,
+      const payload = {
+        order: {
+          user_id: checkoutUser.user ? checkoutUser.user.id : null,
+          total: total,
+          delivery_address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zip}`,
+          delivery_fee: deliveryFee,
+          delivery_instructions: formData.deliveryInstructions || '',
+          delivery_method: formData.deliveryMethod || 'standard',
+          payment_method: formData.paymentMethod || 'card',
+        },
+        guest_info: checkoutUser.isGuest ? {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
           email: checkoutUser.email,
           phone: formData.phone,
         } : null,
-        // Items structure that backend expects
         items: cartItems.map((item) => ({
-          productId: item.id,
+          product_id: item.id,
           quantity: item.quantity,
           price: item.price,
         })),
-        subtotal,
-        deliveryFee,
-        total,
-        deliveryMethod: formData.deliveryMethod || 'standard',
-        deliveryAddress: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zip}`,
-        deliveryInstructions: formData.deliveryInstructions || '',
-        paymentMethod: formData.paymentMethod || 'card',
       };
 
-      const response = await ordersAPI.create(orderData);
+      const response = await ordersAPI.create(payload);
       clearCart();
-      navigate(`/order-confirmation/${response.data.order.id}`);
+      const orderId = response.data.order ? response.data.order.id : response.data.id;
+      navigate(`/order-confirmation/${orderId}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to process order');
+      console.error('Order Error:', err);
+      setError(err.response?.data?.message || err.response?.data?.errors?.join(', ') || 'Failed to process order');
     } finally {
       setLoading(false);
     }

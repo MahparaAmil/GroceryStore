@@ -3,7 +3,7 @@ module Api
     class OrdersController < ApplicationController
       skip_before_action :verify_authenticity_token
       before_action :authenticate_user!, except: [:create]
-      before_action :set_order, only: [:show, :update, :update_status, :destroy]
+      before_action :set_order, only: [:show, :update_status, :destroy]
 
       # GET /api/v1/orders
       def index
@@ -26,11 +26,27 @@ module Api
 
       # POST /api/v1/orders
       def create
-        @order = Order.new(order_params)
-        @order.user = current_user if current_user
+        if current_user
+          @order = Order.new(order_params)
+          @order.user = current_user
+        else
+          # Guest Checkout: Create a guest user
+          user_params = params[:guest_info] || {}
+          guest_email = user_params[:email] || "guest_#{SecureRandom.hex(4)}@example.com"
+          @guest_user = User.find_or_initialize_by(email: guest_email)
+          @guest_user.password ||= SecureRandom.hex(8)
+          @guest_user.role = :guest
+          @guest_user.first_name = user_params[:first_name]
+          @guest_user.last_name = user_params[:last_name]
+          @guest_user.phone = user_params[:phone]
+          @guest_user.save! if @guest_user.new_record?
+          
+          @order = Order.new(order_params)
+          @order.user = @guest_user
+        end
 
         if @order.save
-          # Create order items
+          # Create order items and decrement stock
           if params[:items].present?
             params[:items].each do |item|
               @order.order_items.create!(
@@ -38,10 +54,19 @@ module Api
                 quantity: item[:quantity],
                 price: item[:price]
               )
+              # Decrement stock
+              product = Product.find(item[:product_id])
+              product.update(stock: product.stock - item[:quantity]) if product.stock.present?
             end
           end
+
+          # Auto-generate Invoice
+          @order.create_invoice!(
+            total: @order.total,
+            status: :unpaid
+          )
           
-          render json: @order.as_json(include: :order_items), status: :created
+          render json: @order.as_json(include: [:order_items, :invoice]), status: :created
         else
           render json: { errors: @order.errors.full_messages }, status: :unprocessable_entity
         end

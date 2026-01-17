@@ -1,69 +1,111 @@
-name: Deploy to AWS EC2
+name: Deploy to EC2
 
 on:
   push:
     branches:
-      - main
+      - ror/main
+  pull_request:
+    branches:
+      - ror/main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Setup SSH key using official ssh-agent action
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.7.0
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          ssh-private-key: ${{ secrets.EC2_KEY }}
+          ruby-version: 3.1.6
+          bundler-cache: true
 
-      # Step 2b: Add EC2 host to known_hosts
-      - name: Add EC2 to known_hosts
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Run tests
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RAILS_ENV: test
+          RAILS_MASTER_KEY: ${{ secrets.SECRET_KEY_BASE }}
         run: |
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          bundle exec rake db:test:prepare
+          bundle exec rspec
 
-      # Step 3: Pull latest code on EC2
-      - name: Pull latest code from GitHub
+      - name: Build Docker images
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "cd /home/ubuntu/GroceryStore && git pull origin main"
+          docker build -f Dockerfile.backend -t grocery-backend:latest .
+          docker build -f frontend/Dockerfile -t grocery-frontend:latest ./frontend
+          docker build -f nginx.Dockerfile -t grocery-nginx:latest .
 
-      # Step 4: Install and restart backend
-      - name: Install backend dependencies
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/ror/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure SSH
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "cd /home/ubuntu/GroceryStore/backend && npm install"
-
-      # Step 4b: Run database migrations
-      - name: Run database migrations
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+//
+      - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "cd /home/ubuntu/GroceryStore/backend && node migrate.js"
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'SSHEOF'
+          cd /home/ubuntu/GroceryStore || mkdir -p /home/ubuntu/GroceryStore
+          cd /home/ubuntu/GroceryStore
+          
+          # Pull latest code
+          if [ ! -d .git ]; then
+            git clone https://github.com/${{ github.repository }}.git .
+          else
+            git pull origin ror/main
+          fi
+          
+          # Update environment
+          cat > .env << 'ENVEOF'
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          JWT_SECRET=${{ secrets.SECRET_KEY_BASE }}
+          RAILS_MASTER_KEY=${{ secrets.SECRET_KEY_BASE }}
+          ENVEOF
+          
+          # Deploy with Docker Compose
+          docker-compose down
+          docker-compose up -d --build
+          
+          # Run migrations
+          docker-compose exec -T backend bundle exec rake db:migrate
+          
+          echo "Deployment completed successfully!"
+          SSHEOF
 
-      - name: Restart backend with PM2
+      - name: Verify deployment
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "pm2 restart grocery-backend"
-
-      # Step 5: Build and deploy frontend
-      - name: Install frontend dependencies
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "cd /home/ubuntu/GroceryStore/frontend && npm install"
-
-      - name: Build frontend
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "cd /home/ubuntu/GroceryStore/frontend && npm run build"
-
-      # Step 6: Notify deployment status
-      - name: Deployment successful
-        if: success()
-        run: echo "✅ Deployment to AWS EC2 completed successfully!"
-
-      - name: Deployment failed
-        if: failure()
-        run: echo "❌ Deployment failed. Check logs above."
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'SSHEOF'
+          echo "Checking services..."
+          docker-compose ps
+          echo "Testing health endpoints..."
+          curl -f http://localhost/health || echo "Health check failed"
+          echo "Deployment verification complete!"
+          SSHEOF

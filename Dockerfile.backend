@@ -35,9 +35,6 @@ COPY . .
 RUN mkdir -p log && \
     chmod -R 755 log
 
-# Precompile assets (optional for API-only apps)
-RUN bundle exec bootsnap precompile --gemfile
-
 # Expose port
 EXPOSE 5000
 

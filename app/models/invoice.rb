@@ -1,6 +1,6 @@
 class Invoice < ApplicationRecord
   belongs_to :order
-  enum status: { unpaid: 0, paid: 1, cancelled: 2 }
+  enum :status, { unpaid: 0, paid: 1, cancelled: 2 }
 
   before_validation :generate_invoice_number, on: :create
 

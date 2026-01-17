@@ -4,7 +4,7 @@ class Order < ApplicationRecord
   has_one :invoice, dependent: :destroy
   has_many :products, through: :order_items
 
-  enum status: { pending: 0, processing: 1, shipped: 2, delivered: 3, cancelled: 4 }
+  enum :status, { pending: 0, processing: 1, shipped: 2, delivered: 3, cancelled: 4 }
 
   # Ransack configuration for ActiveAdmin search
   def self.ransackable_attributes(auth_object = nil)

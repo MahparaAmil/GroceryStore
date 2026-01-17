@@ -6,7 +6,7 @@ class User < ApplicationRecord
 
   has_many :orders
 
-  enum role: { customer: 0, admin: 1, guest: 2 }
+  enum :role, { customer: 0, admin: 1, guest: 2 }
 
   # Ransack configuration for ActiveAdmin search
   def self.ransackable_attributes(auth_object = nil)

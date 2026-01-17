@@ -79,7 +79,14 @@ module Api
           return
         end
 
+        old_status = @order.status
         if @order.update(status: params[:status])
+          if params[:status] == 'cancelled' && old_status != 'cancelled'
+            @order.order_items.each do |item|
+              product = item.product
+              product.update(stock: product.stock + item.quantity) if product.stock.present?
+            end
+          end
           render json: @order
         else
           render json: { errors: @order.errors.full_messages }, status: :unprocessable_entity

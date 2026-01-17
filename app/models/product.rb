@@ -15,4 +15,10 @@ class Product < ApplicationRecord
   def self.ransackable_associations(auth_object = nil)
     ["brand", "category", "order_items", "orders"]
   end
+
+  def stock_label
+    return "out of stock" if stock.to_i <= 0
+    return "low stock item" if stock.to_i < 50
+    "in stock"
+  end
 end

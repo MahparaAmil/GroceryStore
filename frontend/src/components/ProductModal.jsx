@@ -75,7 +75,15 @@ const ProductModal = ({ product, onClose }) => {
 
                         <div className="modal-meta">
                             <span className="modal-category">{product.category || 'General'}</span>
-                            {product.stock < 10 && <span className="modal-low-stock">Limited: {product.stock} left</span>}
+                            {product.stock_label && (
+                                <span className={`modal-stock-label ${product.stock_label.replace(/\s+/g, '-').toLowerCase()}`}>
+                                    {product.stock_label}
+                                </span>
+                            )}
+                            {/* Always show limited stock count if low */}
+                            {product.stock < 50 && (
+                                <span className="modal-low-stock" style={{ marginLeft: '10px' }}>({product.stock} left)</span>
+                            )}
                         </div>
 
                         <div className="modal-price-section">
@@ -85,6 +93,7 @@ const ProductModal = ({ product, onClose }) => {
 
                         <p className="modal-description">{product.description || `A premium quality ${product.name} item, carefully selected for our customers.`}</p>
 
+                        {/* Nutrition Section ... */}
                         {product.nutrition && Object.keys(product.nutrition).length > 0 && (
                             <div className="modal-nutrition-chart">
                                 <h3>Nutrition Facts</h3>
@@ -115,13 +124,16 @@ const ProductModal = ({ product, onClose }) => {
 
                         <div className="modal-actions">
                             <button
-                                className="btn-add-cart-large"
+                                className={`btn-add-cart-large ${product.stock_label === 'out of stock' ? 'disabled' : ''}`}
+                                disabled={product.stock_label === 'out of stock'}
                                 onClick={() => {
-                                    addToCart(product);
-                                    onClose();
+                                    if (product.stock_label !== 'out of stock') {
+                                        addToCart(product);
+                                        onClose();
+                                    }
                                 }}
                             >
-                                Add to Cart
+                                {product.stock_label === 'out of stock' ? 'Out of Stock' : 'Add to Cart'}
                             </button>
                         </div>
                     </div>

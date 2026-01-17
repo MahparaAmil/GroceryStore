@@ -6,6 +6,9 @@ module Api
       before_action :set_invoice, only: [:show, :update, :destroy]
 
       def index
+        unless current_user
+          render json: { error: 'Not Authorized' }, status: :unauthorized and return
+        end
         if current_user.admin?
           @invoices = Invoice.all
         else

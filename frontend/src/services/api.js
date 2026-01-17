@@ -87,6 +87,7 @@ const normalizeProduct = (product) => {
       description: product.description || '',
       price: typeof product.price === 'string' ? parseFloat(product.price) : (product.price || 0),
       stock: product.stock !== undefined ? product.stock : 0,
+      stock_label: product.stock_label || '',
       picture: ensureAbsoluteUrl(product.image_url) || '🥬',
       category: typeof product.category === 'object' ? product.category?.name : (product.category || ''),
       brand: typeof product.brand === 'object' ? product.brand?.name : (product.brand || 'Unknown'),

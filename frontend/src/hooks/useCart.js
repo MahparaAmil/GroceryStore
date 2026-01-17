@@ -14,13 +14,30 @@ export const useCart = () => {
   const addToCart = useCallback((product, quantity = 1) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find((item) => item.id === product.id);
+      const availableStock = product.stock || 0;
+
       if (existingItem) {
+        const newQuantity = existingItem.quantity + quantity;
+        if (newQuantity > availableStock) {
+          // Ideally show a toast here, but for now we clamp
+          return prevItems.map((item) =>
+            item.id === product.id
+              ? { ...item, quantity: availableStock }
+              : item
+          );
+        }
         return prevItems.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, quantity: newQuantity }
             : item
         );
       }
+
+      // If adding new item but requested quantity > stock
+      if (quantity > availableStock) {
+        return [...prevItems, { ...product, quantity: availableStock }];
+      }
+
       return [...prevItems, { ...product, quantity }];
     });
   }, []);
@@ -32,16 +49,23 @@ export const useCart = () => {
   }, []);
 
   const updateQuantity = useCallback((productId, quantity) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === productId ? { ...item, quantity } : item
-      )
-    );
-  }, [removeFromCart]);
+    setCartItems((prevItems) => {
+      const item = prevItems.find(i => i.id === productId);
+      if (!item) return prevItems;
+
+      if (quantity <= 0) {
+        return prevItems.filter(i => i.id !== productId);
+      }
+
+      if (quantity > (item.stock || 0)) {
+        return prevItems.map(i => i.id === productId ? { ...i, quantity: item.stock } : i);
+      }
+
+      return prevItems.map(i =>
+        i.id === productId ? { ...i, quantity } : i
+      );
+    });
+  }, []);
 
   const clearCart = useCallback(() => {
     setCartItems([]);

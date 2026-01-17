@@ -34,7 +34,7 @@ export default function ProductCard({ product, onClick }) {
 
         {/* Optional Badge */}
         {product.onSale && <span className="badge badge-sale">Sale</span>}
-        {isOutOfStock && <span className="badge badge-out">Sold Out</span>}
+        {product.stock_label === 'out of stock' && <span className="badge badge-out">Sold Out</span>}
       </div>
 
       <div className="product-body">
@@ -54,13 +54,13 @@ export default function ProductCard({ product, onClick }) {
           <button
             onClick={handleAddToCart}
             className="btn-add"
-            disabled={isOutOfStock}
+            disabled={product.stock_label === 'out of stock'}
           >
-            {isOutOfStock ? 'Out' : '+ Add'}
+            {product.stock_label === 'out of stock' ? 'Out' : '+ Add'}
           </button>
         </div>
-        {product.stock > 0 && product.stock < 10 && (
-          <div className="low-stock-alert">Only {product.stock} left</div>
+        {product.stock_label === 'low stock item' && (
+          <div className="low-stock-alert">Low Stock: {product.stock} left</div>
         )}
       </div>
     </div>

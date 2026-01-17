@@ -59,6 +59,9 @@ jobs:
           ${{ secrets.EC2_SSH_KEY }}
           KEYEOF
           chmod 600 ~/.ssh/id_rsa
+          echo "SSH key file size: $(wc -c < ~/.ssh/id_rsa) bytes"
+          head -1 ~/.ssh/id_rsa
+          tail -1 ~/.ssh/id_rsa
           ssh-keyscan -t rsa ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to EC2

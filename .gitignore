@@ -7,13 +7,14 @@
 /.bundle
 /vendor/cache
 
-# Environment & Secrets
+# Environment & Secrets (CRITICAL - Never commit these)
 .env
 .env.local
 .env.*.local
 config/master.key
 config/credentials/*.key
 /frontend/.env
+/frontend/.env.local
 
 # Database
 /db/*.sqlite3
@@ -48,6 +49,26 @@ yarn-error.log*
 # OS & IDE
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+/certs
+docker-compose.override.yml
+
+# Build outputs
+/dist
+/build
+/coverage
+
+# Backend specific
+/.byebug_history
+/tmp/pids/
+/.env.development.local
+/.env.test.local
 .idea/
 .vscode/
 *.swp

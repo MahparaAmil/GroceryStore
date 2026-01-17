@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const RAILS_URL = 'http://localhost:5001';
+const RAILS_URL = 'http://localhost:5000';
 const API_BASE_URL = `${RAILS_URL}/api/v1`;
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK === 'true';
 

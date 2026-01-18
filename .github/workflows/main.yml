@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, ror/main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, ror/main ]
 
 jobs:
   test-backend:
@@ -56,4 +56,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.EPITECH_PAT }}
       run: |
         git remote add epitech https://x-access-token:${GITHUB_TOKEN}@github.com/EpitechMscInternationalPromo2027/I-DEV-702-INT-7-1-trinitydevweb-4.git
-        git push epitech HEAD:main --force
+        # Push ror/main to main branch on Epitech
+        git push epitech ror/main:main --force || true

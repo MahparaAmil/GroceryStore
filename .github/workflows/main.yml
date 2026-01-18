@@ -36,7 +36,6 @@ jobs:
         SUPABASE_SERVICE_ROLE_KEY: "mock_key"
 
   mirror:
-    needs: test-backend # Only mirror if tests pass
     runs-on: ubuntu-latest
     if: github.event_name == 'push' # Don't mirror on PRs
     

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const RAILS_URL = 'http://localhost:5000';
-const API_BASE_URL = `${RAILS_URL}/api/v1`;
+const RAILS_URL = import.meta.env.VITE_BACKEND_URL !== undefined ? import.meta.env.VITE_BACKEND_URL : 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || `${RAILS_URL}/api/v1`;
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK === 'true';
 
 const ensureAbsoluteUrl = (url) => {

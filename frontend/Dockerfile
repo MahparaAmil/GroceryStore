@@ -13,6 +13,16 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Build arguments
+ARG VITE_API_URL
+ARG VITE_BACKEND_URL
+ARG VITE_USE_MOCK
+
+# Set environment vars for build time
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+ENV VITE_USE_MOCK=$VITE_USE_MOCK
+
 # Build the app
 RUN npm run build
 
@@ -29,10 +39,6 @@ COPY --from=builder /app/dist ./dist
 
 # Expose port
 EXPOSE 3000
-
-# Set environment variables
-ENV VITE_API_URL=http://localhost:5000
-ENV VITE_USE_MOCK=false
 
 # Start the application
 CMD ["serve", "-s", "dist", "-l", "3000"]

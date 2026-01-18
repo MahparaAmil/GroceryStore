@@ -37,7 +37,7 @@ services:
     container_name: grocery-backend
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       # Rails Configuration
       - RAILS_ENV=production
@@ -79,25 +79,22 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
+        - VITE_USE_MOCK=false
+        - VITE_BACKEND_URL=
     container_name: grocery-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      # Frontend Configuration
-      - VITE_API_URL=http://localhost/api
-      - VITE_USE_MOCK=false
       - NODE_ENV=production
-    
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     networks:
       - grocery-store-network
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -107,7 +104,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    command: npm run dev
 
 networks:
   grocery-store-network:
